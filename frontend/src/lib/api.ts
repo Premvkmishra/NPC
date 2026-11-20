@@ -41,7 +41,13 @@ function qs(o: Record<string, string | number | undefined | null>) {
 
 export const httpClient: NpcClient = {
   health: () => req("GET", "/health", { auth: false }),
-  createPlayer: (p) => req("POST", "/players", { body: p, auth: false }),
+  createPlayer: async (p) => {
+    const res = await req<{ player: Player; autopilot: Autopilot }>("POST", "/players", { body: p, auth: false });
+    if (res?.player?.id) {
+      setPlayerId(res.player.id);
+    }
+    return res;
+  },
   getMe: () => req("GET", "/players/me"),
   updateMe: (p) => req("PATCH", "/players/me", { body: p }),
   home: () => req("GET", "/home"),

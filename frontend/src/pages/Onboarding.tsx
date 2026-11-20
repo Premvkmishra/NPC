@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { api } from "@/lib/api";
+import { api, setPlayerId } from "@/lib/api";
 import type { Autopilot, Interest, Preferences } from "@/lib/types";
 import { Btn } from "@/components/Btn";
 import { DialogueBox } from "@/components/DialogueBox";
@@ -41,7 +41,15 @@ export function Onboarding() {
   const [result, setResult] = useState<Autopilot | null>(null);
   const [geo, setGeo] = useState("");
   const set = <K extends keyof Preferences>(k: K, v: Preferences[K]) => setP((s) => ({ ...s, [k]: v }));
-  const create = useMutation({ mutationFn: () => api.createPlayer(p), onSuccess: (r) => setTimeout(() => setResult(r.autopilot), 1200) });
+  const create = useMutation({
+    mutationFn: () => api.createPlayer(p),
+    onSuccess: (r) => {
+      if (r?.player?.id) {
+        setPlayerId(r.player.id);
+      }
+      setTimeout(() => setResult(r.autopilot), 1200);
+    },
+  });
 
   const canNext = [p.interests.length > 0, true, p.city.trim().length > 0, p.display_name.trim().length > 0][step];
 
