@@ -1,0 +1,69 @@
+{
+  "search_metadata": {
+    "id": "mock_google_search_andheri",
+    "status": "Success",
+    "created_at": "2026-11-20 10:00:00 UTC",
+    "processed_at": "2026-11-20 10:00:01 UTC"
+  },
+  "search_parameters": {
+    "engine": "google",
+    "q": "unusual things to do hidden spots street art walks Andheri Mumbai",
+    "location": "Mumbai, Maharashtra, India"
+  },
+  "organic_results": [
+    {
+      "position": 1,
+      "title": "Versova Koliwada Street Art Walk & Hidden Murals",
+      "link": "https://mumbaimirror.indiatimes.com/mumbai/culture/versova-koliwada-murals",
+      "snippet": "Take a self-guided trail through 200-year-old fishing village alleys covered with giant vibrant marine murals by Mumbai and international street artists.",
+      "thumbnail": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=400"
+    },
+    {
+      "position": 2,
+      "title": "Second-Hand Book Bargain Hunt outside Andheri Station",
+      "link": "https://lbb.in/mumbai/station-road-bookstalls-andheri",
+      "snippet": "Hidden beneath the suburban railway awnings, pavement stalls sell vintage paperbacks, translated classics, and old architecture magazines from ₹50.",
+      "thumbnail": "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400"
+    },
+    {
+      "position": 3,
+      "title": "Silent Walking Meditation: Gilbert Hill Basalt Monolith",
+      "link": "https://scroll.in/magazine/gilbert-hill-mumbai-geology",
+      "snippet": "A 66-million-year-old volcanic rock column in the middle of bustling Andheri West with steep steps and panoramic view of the suburban canopy.",
+      "thumbnail": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400"
+    },
+    {
+      "position": 4,
+      "title": "Mahakali Caves: Ancient Buddhist Rock-Cut Monasteries",
+      "link": "https://asi.nic.in/mahakali-caves-andheri-east",
+      "snippet": "Nineteen basalt caves carved between 1st century BCE and 6th century CE tucked away in Andheri East surrounded by quiet banyan trees.",
+      "thumbnail": "https://images.unsplash.com/photo-1599839575945-a9e5af0c3fa5?w=400"
+    }
+  ],
+  "local_results": {
+    "places": [
+      {
+        "position": 1,
+        "title": "A1 Cold Coco & Chai Tapri",
+        "address": "Near Versova Metro Pillar 42, Andheri West, Mumbai",
+        "rating": 4.6,
+        "reviews": 182,
+        "price": "₹",
+        "links": {
+          "directions": "https://maps.google.com/?cid=a1tapri001"
+        }
+      },
+      {
+        "position": 2,
+        "title": "Kyani-Style Heritage Bun Maska Corner",
+        "address": "Chakala Signal, Andheri East, Mumbai",
+        "rating": 4.3,
+        "reviews": 96,
+        "price": "₹",
+        "links": {
+          "directions": "https://maps.google.com/?cid=heritagemaska002"
+        }
+      }
+    ]
+  }
+}

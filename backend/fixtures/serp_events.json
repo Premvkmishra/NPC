@@ -1,0 +1,150 @@
+{
+  "search_metadata": {
+    "id": "mock_events_search_andheri",
+    "status": "Success",
+    "created_at": "2026-11-20 10:00:00 UTC",
+    "processed_at": "2026-11-20 10:00:01 UTC"
+  },
+  "search_parameters": {
+    "engine": "google_events",
+    "q": "workshops open mic community events in Andheri Mumbai"
+  },
+  "events_results": [
+    {
+      "title": "Beginner Pottery Wheel Session",
+      "date": {
+        "start_date": "Nov 22",
+        "when": "Sat, Nov 22, 4:00 PM – 6:00 PM"
+      },
+      "address": [
+        "Four Bungalows, Andheri West",
+        "Mumbai, Maharashtra 400053"
+      ],
+      "link": "https://insider.in/beginner-pottery-wheel-andheri-nov2026",
+      "description": "Learn the ancient craft of wheel throwing. Shape and glaze your first clay vessel with master potters.",
+      "ticket_info": [
+        {
+          "source": "insider.in",
+          "link": "https://insider.in/beginner-pottery-wheel-andheri-nov2026",
+          "link_type": "tickets"
+        }
+      ],
+      "venue": {
+        "name": "The Clay Studio Mumbai",
+        "rating": 4.8,
+        "reviews": 128,
+        "link": "https://theclaystudio.in"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=400"
+    },
+    {
+      "title": "Free Poetry & Storytelling Open Mic",
+      "date": {
+        "start_date": "Nov 21",
+        "when": "Fri, Nov 21, 7:30 PM – 9:30 PM"
+      },
+      "address": [
+        "Aram Nagar Part 2, Versova",
+        "Andheri West, Mumbai 400061"
+      ],
+      "link": "https://bookmyshow.com/events/free-open-mic-versova",
+      "description": "A warm, judgment-free circle for poets, spoken word artists, and first-time storytellers.",
+      "ticket_info": [
+        {
+          "source": "bookmyshow.com",
+          "link": "https://bookmyshow.com/events/free-open-mic-versova",
+          "link_type": "free"
+        }
+      ],
+      "venue": {
+        "name": "Harkat Studios",
+        "rating": 4.7,
+        "reviews": 210,
+        "link": "https://harkat.in"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400"
+    },
+    {
+      "title": "Intro to Devanagari Calligraphy Workshop",
+      "date": {
+        "start_date": "Nov 23",
+        "when": "Sun, Nov 23, 11:00 AM – 1:30 PM"
+      },
+      "address": [
+        "Near Infinity Mall, Link Road",
+        "Andheri West, Mumbai 400053"
+      ],
+      "link": "https://insider.in/devanagari-calligraphy-andheri",
+      "description": "Master bamboo pen strokes and meditative Devanagari letterforms in a 2-hour guided studio workshop.",
+      "ticket_info": [
+        {
+          "source": "insider.in",
+          "link": "https://insider.in/devanagari-calligraphy-andheri",
+          "link_type": "tickets"
+        }
+      ],
+      "venue": {
+        "name": "Art Station Lokhandwala",
+        "rating": 4.6,
+        "reviews": 85,
+        "link": "https://artstation.in"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400"
+    },
+    {
+      "title": "Versova Sunset Beach Cleanup & Social",
+      "date": {
+        "start_date": "Nov 23",
+        "when": "Sun, Nov 23, 4:30 PM – 6:30 PM"
+      },
+      "address": [
+        "Versova Beach promenade",
+        "Versova, Andheri West, Mumbai 400061"
+      ],
+      "link": "https://meetup.com/mumbai-ocean-cleaners/events/versova-cleanup",
+      "description": "Join local residents and nature volunteers for an empowering evening clean up followed by chai.",
+      "ticket_info": [
+        {
+          "source": "meetup.com",
+          "link": "https://meetup.com/mumbai-ocean-cleaners/events/versova-cleanup",
+          "link_type": "free"
+        }
+      ],
+      "venue": {
+        "name": "Versova Beachfront",
+        "rating": 4.5,
+        "reviews": 320,
+        "link": "https://meetup.com"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?w=400"
+    },
+    {
+      "title": "Improv for Introverts: Beginner Drama Lab",
+      "date": {
+        "start_date": "Nov 22",
+        "when": "Sat, Nov 22, 6:00 PM – 8:00 PM"
+      },
+      "address": [
+        "Aram Nagar Part 1, Versova",
+        "Andheri West, Mumbai 400061"
+      ],
+      "link": "https://insider.in/improv-for-introverts-andheri",
+      "description": "Low-pressure theater games designed specifically to get comfortable with unscripted spontaneity.",
+      "ticket_info": [
+        {
+          "source": "insider.in",
+          "link": "https://insider.in/improv-for-introverts-andheri",
+          "link_type": "tickets"
+        }
+      ],
+      "venue": {
+        "name": "The Jeff Goldberg Studio",
+        "rating": 4.9,
+        "reviews": 94,
+        "link": "https://jgstudio.in"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=400"
+    }
+  ]
+}
+

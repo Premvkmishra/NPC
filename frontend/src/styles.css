@@ -1,0 +1,176 @@
+/*
+ * Tailwind v4 entry: config lives here, with no tailwind.config.js or PostCSS plugin.
+ * - Keep every @import in this top block, above @theme and the rest of the file. Install an
+ *   npm package before @importing its CSS. Never @import a remote URL (web fonts, CDN CSS): the
+ *   build resolves @import from the filesystem. Load those with a <link> in the head() of
+ *   src/routes/__root.tsx and name the family in a --font-* token in @theme inline below.
+ */
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The design lives in this file: oklch color tokens on the shadcn variables
+ * (--background, --foreground, --primary, --secondary, --muted, --accent, ...) plus
+ * new tokens as needed, font tokens, and custom styles and animations.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.125rem;
+  --paper: oklch(0.94 0.022 80);
+  --paper-deep: oklch(0.9 0.03 80);
+  --ink: oklch(0.17 0.006 50);
+  --lime: oklch(0.89 0.2 124);
+  --orange: oklch(0.7 0.19 40);
+  --butter: oklch(0.88 0.16 92);
+  --rose: oklch(0.67 0.22 14);
+  --teal: oklch(0.69 0.12 182);
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: oklch(0.975 0.012 85);
+  --card-foreground: var(--ink);
+  --popover: var(--card);
+  --popover-foreground: var(--ink);
+  --primary: var(--lime);
+  --primary-foreground: var(--ink);
+  --secondary: var(--butter);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-deep);
+  --muted-foreground: oklch(0.38 0.01 50);
+  --accent: var(--orange);
+  --accent-foreground: var(--ink);
+  --destructive: var(--rose);
+  --destructive-foreground: var(--ink);
+  --border: var(--ink);
+  --input: var(--ink);
+  --ring: var(--ink);
+  --chart-1: var(--lime); --chart-2: var(--orange); --chart-3: var(--butter); --chart-4: var(--rose); --chart-5: var(--teal);
+  --sidebar: var(--paper); --sidebar-foreground: var(--ink); --sidebar-primary: var(--lime); --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: var(--butter); --sidebar-accent-foreground: var(--ink); --sidebar-border: var(--ink); --sidebar-ring: var(--ink);
+  --shadow-hard: 4px 4px 0 var(--ink);
+  --shadow-hard-sm: 2px 2px 0 var(--ink);
+  --dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Ccircle cx='2' cy='2' r='1' fill='%2314110F' fill-opacity='0.12'/%3E%3C/svg%3E");
+  --dots-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='%23F3EBDD' fill-opacity='0.18'/%3E%3C/svg%3E");
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-lime: var(--lime);
+  --color-orange: var(--orange);
+  --color-butter: var(--butter);
+  --color-rose: var(--rose);
+  --color-teal: var(--teal);
+  --font-pixel: "Pixelify Sans", monospace;
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --shadow-hard: var(--shadow-hard);
+  --shadow-hard-sm: var(--shadow-hard-sm);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html { background-color: var(--ink); background-image: var(--dots-light); }
+  body {
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  ::selection { background-color: var(--lime); color: var(--ink); }
+  h1, h2, h3 { font-family: var(--font-pixel); }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+}
+
+@utility paper-bg { background-color: var(--paper); background-image: var(--dots); }
+@utility ink-border { border: 3px solid var(--ink); }
+@utility hud-label { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.68rem; font-weight: 700; }
+@utility notch {
+  clip-path: polygon(0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px));
+}
+@utility perforated {
+  border-top: 3px dashed var(--ink);
+}
+@utility btn-press {
+  box-shadow: var(--shadow-hard);
+  transition: transform 80ms steps(2), box-shadow 80ms steps(2);
+  &:active:not(:disabled) { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
+}
+
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes stamp-slam { 0% { transform: scale(3) rotate(-14deg); opacity: 0; } 60% { transform: scale(0.92) rotate(-8deg); opacity: 1; } 100% { transform: scale(1) rotate(-8deg); } }
+@keyframes pop-in { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes confetti-fall { 0% { transform: translateY(-20vh) rotate(0); } 100% { transform: translateY(110vh) rotate(540deg); } }
+@keyframes level-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@utility animate-blink { animation: blink 1s steps(1) infinite; }
+@utility animate-stamp { animation: stamp-slam 420ms steps(6) both; }
+@utility animate-pop { animation: pop-in 300ms steps(4) both; }
+@utility animate-confetti { animation: confetti-fall 2.4s steps(24) forwards; }
+@utility animate-level { animation: level-bounce 800ms steps(4) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+@utility ruled-bg { background-color: var(--card); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='28'%3E%3Crect y='27' width='8' height='1' fill='%2314110F' fill-opacity='0.12'/%3E%3C/svg%3E"); }

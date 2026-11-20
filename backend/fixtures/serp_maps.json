@@ -1,0 +1,199 @@
+{
+  "search_metadata": {
+    "id": "mock_maps_search_andheri",
+    "status": "Success",
+    "created_at": "2026-11-20 10:00:00 UTC",
+    "processed_at": "2026-11-20 10:00:01 UTC",
+    "google_maps_url": "https://www.google.com/maps/search/places/@19.1136,72.8697,14z",
+    "raw_html_file": "mock_maps.html",
+    "total_time_taken": 0.42
+  },
+  "search_parameters": {
+    "engine": "google_maps",
+    "type": "search",
+    "q": "hidden gems offbeat places bookstores cafes",
+    "ll": "@19.1136,72.8697,14z"
+  },
+  "local_results": [
+    {
+      "position": 1,
+      "title": "Granth Book Store",
+      "place_id": "ChIJN1t_tDeu5zsRgranth001",
+      "data_id": "0x3be7aee001",
+      "data_cid": "1001",
+      "gps_coordinates": {
+        "latitude": 19.1028,
+        "longitude": 72.8267
+      },
+      "rating": 4.5,
+      "reviews": 340,
+      "price": "$$",
+      "type": "Book store",
+      "types": ["Book store", "Store"],
+      "address": "Juhu Tara Rd, near Sea Princess Hotel, Juhu, Mumbai, Maharashtra 400049",
+      "open_state": "Open ⋅ Closes 9 PM",
+      "hours": "Open ⋅ Closes 9 PM",
+      "operating_hours": {
+        "monday": "10 AM–9 PM",
+        "tuesday": "10 AM–9 PM",
+        "wednesday": "10 AM–9 PM",
+        "thursday": "10 AM–9 PM",
+        "friday": "10 AM–9 PM",
+        "saturday": "10 AM–9 PM",
+        "sunday": "10 AM–9 PM"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1507842229451-7f01be7fe80d?w=400",
+      "link": "https://www.google.com/maps/place/Granth+Book+Store"
+    },
+    {
+      "position": 2,
+      "title": "Lokhandwala Garden & Joggers Track",
+      "place_id": "ChIJN1t_tDeu5zsRlokhandwala002",
+      "data_id": "0x3be7aee002",
+      "data_cid": "1002",
+      "gps_coordinates": {
+        "latitude": 19.1415,
+        "longitude": 72.8272
+      },
+      "rating": 4.4,
+      "reviews": 890,
+      "price": null,
+      "type": "Park",
+      "types": ["Park", "Garden"],
+      "address": "Lokhandwala Complex, Andheri West, Mumbai, Maharashtra 400053",
+      "open_state": "Open ⋅ Closes 8 PM",
+      "hours": "Open ⋅ Closes 8 PM",
+      "operating_hours": {
+        "monday": "6 AM–11 AM, 4 PM–8 PM",
+        "tuesday": "6 AM–11 AM, 4 PM–8 PM",
+        "wednesday": "6 AM–11 AM, 4 PM–8 PM",
+        "thursday": "6 AM–11 AM, 4 PM–8 PM",
+        "friday": "6 AM–11 AM, 4 PM–8 PM",
+        "saturday": "6 AM–11 AM, 4 PM–8 PM",
+        "sunday": "6 AM–11 AM, 4 PM–8 PM"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=400",
+      "link": "https://www.google.com/maps/place/Lokhandwala+Garden"
+    },
+    {
+      "position": 3,
+      "title": "Versova Contemporary Art Space",
+      "place_id": "ChIJN1t_tDeu5zsRversovaart003",
+      "data_id": "0x3be7aee003",
+      "data_cid": "1003",
+      "gps_coordinates": {
+        "latitude": 19.1352,
+        "longitude": 72.8143
+      },
+      "rating": 4.6,
+      "reviews": 115,
+      "price": "Free",
+      "type": "Art gallery",
+      "types": ["Art gallery", "Cultural center"],
+      "address": "Lane 5, Versova Village, Andheri West, Mumbai 400061",
+      "open_state": "Open ⋅ Closes 7 PM",
+      "hours": "Open ⋅ Closes 7 PM",
+      "operating_hours": {
+        "tuesday": "11 AM–7 PM",
+        "wednesday": "11 AM–7 PM",
+        "thursday": "11 AM–7 PM",
+        "friday": "11 AM–7 PM",
+        "saturday": "11 AM–8 PM",
+        "sunday": "11 AM–6 PM"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400",
+      "link": "https://www.google.com/maps/place/Versova+Contemporary+Art"
+    },
+    {
+      "position": 4,
+      "title": "Yari Road Irani Chai & Maskapav Tapri",
+      "place_id": "ChIJN1t_tDeu5zsRyariroadchai004",
+      "data_id": "0x3be7aee004",
+      "data_cid": "1004",
+      "gps_coordinates": {
+        "latitude": 19.1388,
+        "longitude": 72.8125
+      },
+      "rating": 4.5,
+      "reviews": 420,
+      "price": "₹",
+      "type": "Tea house",
+      "types": ["Tea house", "Cafe"],
+      "address": "Fisheries University Rd, Yari Road, Versova, Andheri West, Mumbai 400061",
+      "open_state": "Open ⋅ Closes 11:30 PM",
+      "hours": "Open ⋅ Closes 11:30 PM",
+      "operating_hours": {
+        "monday": "6 AM–11:30 PM",
+        "tuesday": "6 AM–11:30 PM",
+        "wednesday": "6 AM–11:30 PM",
+        "thursday": "6 AM–11:30 PM",
+        "friday": "6 AM–11:30 PM",
+        "saturday": "6 AM–11:30 PM",
+        "sunday": "6 AM–11:30 PM"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400",
+      "link": "https://www.google.com/maps/place/Yari+Road+Irani+Chai"
+    },
+    {
+      "position": 5,
+      "title": "Andheri Market Vada Pav Corner",
+      "place_id": "ChIJN1t_tDeu5zsRvadapav005",
+      "data_id": "0x3be7aee005",
+      "data_cid": "1005",
+      "gps_coordinates": {
+        "latitude": 19.1198,
+        "longitude": 72.8465
+      },
+      "rating": 4.7,
+      "reviews": 1250,
+      "price": "₹",
+      "type": "Fast food restaurant",
+      "types": ["Fast food restaurant", "Street food"],
+      "address": "Station Road, outside Andheri West Railway Station, Mumbai 400058",
+      "open_state": "Open ⋅ Closes 10 PM",
+      "hours": "Open ⋅ Closes 10 PM",
+      "operating_hours": {
+        "monday": "7 AM–10 PM",
+        "tuesday": "7 AM–10 PM",
+        "wednesday": "7 AM–10 PM",
+        "thursday": "7 AM–10 PM",
+        "friday": "7 AM–10 PM",
+        "saturday": "7 AM–10 PM",
+        "sunday": "7 AM–10 PM"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400",
+      "link": "https://www.google.com/maps/place/Andheri+Market+Vada+Pav"
+    },
+    {
+      "position": 6,
+      "title": "The Habitat Comedy & Music Cafe",
+      "place_id": "ChIJN1t_tDeu5zsRhabitat006",
+      "data_id": "0x3be7aee006",
+      "data_cid": "1006",
+      "gps_coordinates": {
+        "latitude": 19.1162,
+        "longitude": 72.8398
+      },
+      "rating": 4.4,
+      "reviews": 750,
+      "price": "$$",
+      "type": "Live music venue",
+      "types": ["Live music venue", "Comedy club", "Cafe"],
+      "address": "1st Floor, Hotel Unicontinental, Khar-Andheri Link Rd, Mumbai",
+      "open_state": "Open ⋅ Closes 1 AM",
+      "hours": "Open ⋅ Closes 1 AM",
+      "operating_hours": {
+        "monday": "5 PM–1 AM",
+        "tuesday": "5 PM–1 AM",
+        "wednesday": "5 PM–1 AM",
+        "thursday": "5 PM–1 AM",
+        "friday": "5 PM–1 AM",
+        "saturday": "12 PM–1 AM",
+        "sunday": "12 PM–1 AM"
+      },
+      "thumbnail": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400",
+      "link": "https://www.google.com/maps/place/The+Habitat+Mumbai"
+    }
+  ]
+}
+

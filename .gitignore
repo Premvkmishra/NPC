@@ -1,0 +1,57 @@
+# Environment variables and secrets (CRITICAL: never commit API keys)
+.env
+*.env
+!.env.example
+backend/.env
+frontend/.env
+
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Databases
+*.db
+*.sqlite3
+npc.db
+backend/npc.db
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node / Frontend Build Outputs
+node_modules/
+frontend/node_modules/
+dist/
+dist-ssr/
+.output/
+.nitro/
+.tanstack/
+.wrangler/
+.vinxi/
+*.local
+.dev.vars
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Editors & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.sw?
