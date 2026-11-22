@@ -36,6 +36,7 @@ from app.services.achievements import evaluate_achievements, ALL_ACHIEVEMENTS
 from app.services.serp import (
     fetch_serp_cached, get_experiences_for_category, load_fixture,
     parse_maps_results, parse_events_results, parse_search_results,
+    geocode_city, haversine_km,
     DEFAULT_MUMBAI_LAT, DEFAULT_MUMBAI_LNG
 )
 from app.services.quest_engine import generate_quest, XP_MAP
@@ -55,11 +56,12 @@ def init_app_state(app_instance: Optional[FastAPI] = None):
     # 1. Create tables
     Base.metadata.create_all(bind=engine)
 
-    # 2. Pre-seed experiences from fixtures if experiences table is empty
+    # 2. Pre-seed experiences from the Andheri fixtures if the table is empty.
+    #    Mock mode only: in live mode Explore fills from real searches for the player's area.
     db = next(get_db())
     try:
         count = db.query(ExperienceModel).count()
-        if count == 0:
+        if count == 0 and not settings.is_serpapi_live:
             now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
             maps_data = load_fixture("serp_maps.json")
             events_data = load_fixture("serp_events.json")
@@ -291,6 +293,45 @@ def model_to_experience(e: ExperienceModel) -> Experience:
         fetched_at=e.fetched_at
     )
 
+def ensure_player_coords(player: PlayerModel, db: Session) -> None:
+    """Fill in missing coordinates from the player's typed city, so searches and distances
+    centre on where they actually are. Lookups are cached, so this is cheap after the first call."""
+    prefs_model = player.preferences
+    if not prefs_model or (prefs_model.lat is not None and prefs_model.lng is not None):
+        return
+    coords = geocode_city(prefs_model.city, db)
+    if coords:
+        prefs_model.lat, prefs_model.lng = coords
+        db.commit()
+        db.refresh(player)
+
+
+def distance_from_player(prefs: Preferences, lat: Optional[float], lng: Optional[float]) -> Optional[float]:
+    if None in (prefs.lat, prefs.lng, lat, lng):
+        return None
+    return haversine_km(prefs.lat, prefs.lng, lat, lng)
+
+
+def nearby_for_player(exps: List[Experience], prefs: Preferences) -> List[Experience]:
+    """Keep experiences within the player's max distance, with distance measured from the player.
+    Items without coordinates (most events) are kept only if their address names the player's city.
+    If the player's own location is unknown, nothing can be filtered and everything is returned."""
+    if prefs.lat is None or prefs.lng is None:
+        return exps
+
+    city_key = (prefs.city or "").split(",")[0].strip().lower()
+    out: List[Experience] = []
+    for e in exps:
+        d = distance_from_player(prefs, e.lat, e.lng)
+        if d is not None:
+            if d <= prefs.max_distance_km:
+                out.append(e.model_copy(update={"distance_km": d}))
+        elif city_key and city_key in (e.address or "").lower():
+            out.append(e.model_copy(update={"distance_km": None}))
+    out.sort(key=lambda e: (e.distance_km is None, e.distance_km or 0.0))
+    return out
+
+
 def get_player_autopilot(player: PlayerModel, db: Session) -> Autopilot:
     prefs_model = player.preferences
     if not prefs_model:
@@ -364,6 +405,7 @@ def create_player(prefs_in: Preferences, db: Session = Depends(get_db)):
     db.add(new_prefs)
     db.commit()
     db.refresh(new_player)
+    ensure_player_coords(new_player, db)
 
     # Initial Autopilot
     autopilot = calculate_autopilot(prefs_in, [])
@@ -405,6 +447,10 @@ def update_player_me(
         player.display_name = up_dict["display_name"]
         prefs_model.display_name = up_dict["display_name"]
     if "city" in up_dict and up_dict["city"]:
+        if up_dict["city"] != prefs_model.city and "lat" not in up_dict and "lng" not in up_dict:
+            # Old coordinates belong to the old city; re-resolve them below.
+            prefs_model.lat = None
+            prefs_model.lng = None
         player.city = up_dict["city"]
         prefs_model.city = up_dict["city"]
     if "interests" in up_dict and up_dict["interests"] is not None:
@@ -432,6 +478,7 @@ def update_player_me(
 
     db.commit()
     db.refresh(player)
+    ensure_player_coords(player, db)
 
     prefs = model_to_preferences(player.preferences)
     autopilot = get_player_autopilot(player, db)
@@ -447,6 +494,7 @@ def get_home(
     player: PlayerModel = Depends(get_current_player),
     db: Session = Depends(get_db)
 ):
+    ensure_player_coords(player, db)
     prefs = model_to_preferences(player.preferences)
     autopilot = get_player_autopilot(player, db)
 
@@ -504,6 +552,7 @@ def generate_new_quest(
     player: PlayerModel = Depends(get_current_player),
     db: Session = Depends(get_db)
 ):
+    ensure_player_coords(player, db)
     prefs = model_to_preferences(player.preferences)
 
     # replace_today=true marks the current suggested quest "dismissed" (no penalty) and returns a new one
@@ -725,6 +774,9 @@ def list_experiences(
     player: PlayerModel = Depends(get_current_player),
     db: Session = Depends(get_db)
 ):
+    ensure_player_coords(player, db)
+    prefs = model_to_preferences(player.preferences)
+
     query = db.query(ExperienceModel)
     if tag and tag.strip():
         query = query.filter(ExperienceModel.tag == tag.strip())
@@ -737,19 +789,22 @@ def list_experiences(
             (ExperienceModel.tag.ilike(search_pattern))
         )
 
-    results = query.limit(limit).all()
+    # The experiences table is shared by all players, so filter it to this player's area.
+    results = nearby_for_player([model_to_experience(e) for e in query.all()], prefs)
 
-    # If empty and searching broadly, fetch from serp service
+    # Nothing nearby yet: search around the player and show what comes back
     if not results:
-        exps, cached = fetch_serp_cached("google_maps", {"q": q or "interesting places to visit", "ll": f"@{DEFAULT_MUMBAI_LAT},{DEFAULT_MUMBAI_LNG},14z"}, db)
+        city = prefs.city or "Mumbai"
+        params: Dict[str, Any] = {"q": f"{q or 'interesting places to visit'} in {city}", "type": "search"}
+        if prefs.lat is not None and prefs.lng is not None:
+            params["ll"] = f"@{prefs.lat},{prefs.lng},14z"
+        exps, cached = fetch_serp_cached("google_maps", params, db, prefs.lat, prefs.lng)
         if tag:
             exps = [e for e in exps if e.tag == tag]
+        exps = nearby_for_player(exps, prefs) or exps
         return ExperiencesListResponse(experiences=exps[:limit], cached=cached)
 
-    return ExperiencesListResponse(
-        experiences=[model_to_experience(e) for e in results],
-        cached=True
-    )
+    return ExperiencesListResponse(experiences=results[:limit], cached=True)
 
 @app.get("/api/v1/explore/experiences/{experience_id}", response_model=ExperienceResponse)
 def get_experience(
@@ -774,6 +829,10 @@ def quest_from_experience(
 
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
+    # The stored distance was measured from whoever first fetched this place; measure from this player.
+    ensure_player_coords(player, db)
+    distance_km = distance_from_player(model_to_preferences(player.preferences), e.lat, e.lng)
+
     # Map experience attributes into a Quest
     category: Category = (
         "explore" if e.tag in ["food", "bookstore", "outdoors"]
@@ -790,7 +849,7 @@ def quest_from_experience(
         address=e.address,
         lat=e.lat,
         lng=e.lng,
-        distance_km=e.distance_km,
+        distance_km=distance_km,
         maps_url=maps_url
     )
     source = QuestSource(
@@ -807,7 +866,11 @@ def quest_from_experience(
         player_id=player.id,
         title=f"Visit {e.title}",
         description=f"{e.subtitle or 'A local find'}. {e.why_worth_it} Go once, stay at least 20 minutes.",
-        why_selected=f"It's {e.distance_km or 2.0} km away and matches the '{e.tag}' vibe you discovered.",
+        why_selected=(
+            f"It's {distance_km} km away and matches the '{e.tag}' vibe you discovered."
+            if distance_km is not None
+            else f"It matches the '{e.tag}' vibe you discovered."
+        ),
         category=category,
         difficulty=difficulty,
         duration_minutes=120 if e.kind == "activity" else 45,
