@@ -7,6 +7,7 @@ import {
   computeRewardStats,
   computeStats,
   formatDuration,
+  type RewardStats,
   type Stats,
 } from "@/lib/analytics";
 import type { Autopilot } from "@/lib/types";
@@ -208,12 +209,8 @@ function Places({ s }: { s: Stats }) {
   );
 }
 
-/** Vouchers redeemed with XP. Shares the Rewards page's query, so a redemption there shows up here. */
-function RewardsEarned() {
-  const q = useQuery({ queryKey: ["rewards"], queryFn: () => api.listRewards() });
-  if (q.isPending) return <LoadingState label="Counting your rewards" />;
-  if (q.isError) return null; // Rewards are a bonus; don't block the rest of the stats.
-  const r = computeRewardStats(q.data);
+/** Vouchers redeemed with XP: totals, latest few, and what is within reach next. */
+function RewardsEarned({ r }: { r: RewardStats }) {
   return (
     <Card title="Rewards earned" className="bg-orange">
       <div className="grid grid-cols-3 gap-2 text-center">
@@ -257,9 +254,13 @@ function RewardsEarned() {
 
 export function Analytics() {
   const q = useQuery({ queryKey: ["analytics"], queryFn: () => api.analytics() });
+  // Shares the Rewards page's query, so a redemption there shows up here. Rewards are a bonus:
+  // if they fail to load, the rest of the stats still render.
+  const rq = useQuery({ queryKey: ["rewards"], queryFn: () => api.listRewards() });
   if (q.isPending) return <LoadingState label="Crunching your adventures" />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const s = computeStats(q.data);
+  const r = rq.data ? computeRewardStats(rq.data) : null;
 
   if (!s.quests) {
     return (
@@ -337,6 +338,22 @@ export function Analytics() {
           value={n(s.xp)}
           note={`Level ${q.data.player.level}`}
         />
+        {r && (
+          <>
+            <Tile
+              icon="gift"
+              label="Rewards earned"
+              value={n(r.redeemed)}
+              note={r.active ? `${r.active} voucher${r.active > 1 ? "s" : ""} still active` : "Vouchers redeemed"}
+            />
+            <Tile
+              icon="star"
+              label="Saved"
+              value={`₹${n(r.savedInr)}`}
+              note={`${n(r.xpSpent)} XP spent on rewards`}
+            />
+          </>
+        )}
       </section>
 
       <AutopilotShift start={q.data.autopilot_start} now={q.data.autopilot_now} />
@@ -362,7 +379,7 @@ export function Analytics() {
         </p>
       </Card>
 
-      <RewardsEarned />
+      {r && <RewardsEarned r={r} />}
       <CategoryMix s={s} />
       <Places s={s} />
 

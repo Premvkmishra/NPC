@@ -155,6 +155,7 @@ export function computeStats(data: AnalyticsResponse, now = new Date(), weeksSho
 
 export interface RewardStats {
   redeemed: number;
+  active: number;
   savedInr: number;
   xpSpent: number;
   balance: number;
@@ -174,6 +175,7 @@ export function computeRewardStats(data: RewardsListResponse, recentShown = 3): 
   const locked = data.rewards.filter((r) => r.cost_xp > balance).sort((a, b) => a.cost_xp - b.cost_xp);
   return {
     redeemed: withValue.length,
+    active: withValue.filter((x) => x.status === "active").length,
     savedInr: withValue.reduce((a, x) => a + x.discount_inr, 0),
     xpSpent: withValue.reduce((a, x) => a + x.cost_xp, 0),
     balance,

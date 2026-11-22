@@ -142,6 +142,7 @@ describe("computeStats", () => {
       player_xp: 120,
     });
     expect(r.redeemed).toBe(3);
+    expect(r.active).toBe(3);
     expect(r.savedInr).toBe(120); // an unknown reward counts as ₹0, not NaN
     expect(r.xpSpent).toBe(330);
     expect(r.affordable).toBe(1);
