@@ -62,6 +62,9 @@ export const httpClient: NpcClient = {
   questFromExperience: (id) => req("POST", `/explore/experiences/${encodeURIComponent(id)}/quest`),
   journey: () => req("GET", "/journey"),
   weeklyRecap: () => req("GET", "/journey/weekly-recap"),
+  listRewards: () => req("GET", "/rewards"),
+  redeemReward: (id: string) => req("POST", `/rewards/${encodeURIComponent(id)}/redeem`),
+  myRedemptions: () => req("GET", "/rewards/my-redemptions"),
 };
 
 export const api: NpcClient = USE_MOCK ? mockClient : httpClient;

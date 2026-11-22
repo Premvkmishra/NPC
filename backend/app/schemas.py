@@ -216,3 +216,41 @@ class ErrorDetail(BaseModel):
 class ErrorResponse(BaseModel):
     error: ErrorDetail
 
+class Reward(BaseModel):
+    id: str
+    title: str
+    description: str
+    brand: str
+    category: str
+    discount_amount_inr: int
+    cost_xp: int
+    location: Optional[str] = None
+    terms: Optional[str] = None
+    icon_key: str
+    is_active: bool
+
+class RewardRedemption(BaseModel):
+    id: str
+    reward_id: str
+    reward_title: str
+    brand: str
+    voucher_code: str
+    cost_xp: int
+    redeemed_at: str
+    expires_at: str
+    status: str
+
+class RewardsListResponse(BaseModel):
+    rewards: List[Reward]
+    redemptions: List[RewardRedemption]
+    player_xp: int
+
+class RedeemRewardResponse(BaseModel):
+    success: bool
+    redemption: RewardRedemption
+    player: Player
+    reward: Reward
+    code: str
+    message: str
+
+

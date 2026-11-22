@@ -120,3 +120,34 @@ class PlayerAchievementModel(Base):
 
     player = relationship("PlayerModel", back_populates="achievements")
 
+class RewardModel(Base):
+    __tablename__ = "rewards"
+
+    id = Column(String, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    brand = Column(String, nullable=False)
+    category = Column(String, nullable=False) # food, lifestyle, shopping
+    discount_amount_inr = Column(Integer, nullable=False)
+    cost_xp = Column(Integer, nullable=False)
+    location = Column(String, nullable=True)
+    terms = Column(Text, nullable=True)
+    icon_key = Column(String, nullable=False)
+    is_active = Column(Integer, default=1, nullable=False)
+
+class RewardRedemptionModel(Base):
+    __tablename__ = "reward_redemptions"
+
+    id = Column(String, primary_key=True, index=True)
+    player_id = Column(String, ForeignKey("players.id"), nullable=False, index=True)
+    reward_id = Column(String, ForeignKey("rewards.id"), nullable=False, index=True)
+    voucher_code = Column(String, nullable=False, unique=True)
+    cost_xp = Column(Integer, nullable=False)
+    redeemed_at = Column(String, nullable=False)
+    expires_at = Column(String, nullable=False)
+    status = Column(String, default="active", nullable=False) # active, used
+
+    player = relationship("PlayerModel")
+    reward = relationship("RewardModel")
+
+

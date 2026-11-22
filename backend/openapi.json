@@ -905,6 +905,151 @@
           }
         }
       }
+    },
+    "/api/v1/rewards": {
+      "get": {
+        "summary": "List Rewards",
+        "operationId": "list_rewards_api_v1_rewards_get",
+        "parameters": [
+          {
+            "name": "X-Player-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Player-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RewardsListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rewards/{reward_id}/redeem": {
+      "post": {
+        "summary": "Redeem Reward",
+        "operationId": "redeem_reward_api_v1_rewards__reward_id__redeem_post",
+        "parameters": [
+          {
+            "name": "reward_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Reward Id"
+            }
+          },
+          {
+            "name": "X-Player-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Player-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RedeemRewardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rewards/my-redemptions": {
+      "get": {
+        "summary": "Get My Redemptions",
+        "operationId": "get_my_redemptions_api_v1_rewards_my_redemptions_get",
+        "parameters": [
+          {
+            "name": "X-Player-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Player-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2206,6 +2351,198 @@
           "quests"
         ],
         "title": "QuestsListResponse"
+      },
+      "RedeemRewardResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "redemption": {
+            "$ref": "#/components/schemas/RewardRedemption"
+          },
+          "player": {
+            "$ref": "#/components/schemas/Player"
+          },
+          "reward": {
+            "$ref": "#/components/schemas/Reward"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "redemption",
+          "player",
+          "reward",
+          "code",
+          "message"
+        ],
+        "title": "RedeemRewardResponse"
+      },
+      "Reward": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "discount_amount_inr": {
+            "type": "integer",
+            "title": "Discount Amount Inr"
+          },
+          "cost_xp": {
+            "type": "integer",
+            "title": "Cost Xp"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "terms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Terms"
+          },
+          "icon_key": {
+            "type": "string",
+            "title": "Icon Key"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "description",
+          "brand",
+          "category",
+          "discount_amount_inr",
+          "cost_xp",
+          "icon_key",
+          "is_active"
+        ],
+        "title": "Reward"
+      },
+      "RewardRedemption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "reward_id": {
+            "type": "string",
+            "title": "Reward Id"
+          },
+          "reward_title": {
+            "type": "string",
+            "title": "Reward Title"
+          },
+          "brand": {
+            "type": "string",
+            "title": "Brand"
+          },
+          "voucher_code": {
+            "type": "string",
+            "title": "Voucher Code"
+          },
+          "cost_xp": {
+            "type": "integer",
+            "title": "Cost Xp"
+          },
+          "redeemed_at": {
+            "type": "string",
+            "title": "Redeemed At"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "reward_id",
+          "reward_title",
+          "brand",
+          "voucher_code",
+          "cost_xp",
+          "redeemed_at",
+          "expires_at",
+          "status"
+        ],
+        "title": "RewardRedemption"
+      },
+      "RewardsListResponse": {
+        "properties": {
+          "rewards": {
+            "items": {
+              "$ref": "#/components/schemas/Reward"
+            },
+            "type": "array",
+            "title": "Rewards"
+          },
+          "redemptions": {
+            "items": {
+              "$ref": "#/components/schemas/RewardRedemption"
+            },
+            "type": "array",
+            "title": "Redemptions"
+          },
+          "player_xp": {
+            "type": "integer",
+            "title": "Player Xp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rewards",
+          "redemptions",
+          "player_xp"
+        ],
+        "title": "RewardsListResponse"
       },
       "ValidationError": {
         "properties": {
