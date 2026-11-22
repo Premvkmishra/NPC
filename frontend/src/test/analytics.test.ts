@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStats, formatDuration } from "@/lib/analytics";
+import { computeRewardStats, computeStats, formatDuration } from "@/lib/analytics";
 import type { AnalyticsEntry, AnalyticsResponse, Autopilot } from "@/lib/types";
 
 const ap: Autopilot = {
@@ -118,7 +118,6 @@ describe("computeStats", () => {
     expect(s.freeQuests).toBe(2);
     expect(s.topCategory).toBe("explore");
     expect(s.difficulty).toEqual({ easy: 3, medium: 0, hard: 1 });
-    expect(s.timeOfDay).toEqual({ morning: 2, afternoon: 1, evening: 1, night: 0 });
     expect(s.followThrough).toBe(80);
     expect(s.reflections).toBe(1);
     expect(s.photos).toBe(1);
@@ -126,6 +125,28 @@ describe("computeStats", () => {
     expect(s.previousPerWeek).toBe(0.3); // 1 in the 28 before
     expect(s.weeks.at(-1)!.quests).toBe(2); // today (Sun) and Thu fall in this Mon–Sun week
     expect(s.weeks.at(-2)!.quests).toBe(1); // 10 days ago
+  });
+
+  it("summarises rewards: savings, XP spent and the next unlock", () => {
+    const reward = (id: string, brand: string, cost_xp: number, discount_amount_inr: number) => ({
+      id, title: brand, description: "", brand, category: "food", discount_amount_inr, cost_xp,
+      location: null, terms: null, icon_key: "gift", is_active: true,
+    });
+    const red = (reward_id: string, cost_xp: number, redeemed_at: string) => ({
+      id: reward_id + redeemed_at, reward_id, reward_title: "", brand: reward_id, voucher_code: "X",
+      cost_xp, redeemed_at, expires_at: redeemed_at, status: "active",
+    });
+    const r = computeRewardStats({
+      rewards: [reward("a", "Idli", 50, 20), reward("b", "Coffee", 200, 100), reward("c", "Burger", 150, 75)],
+      redemptions: [red("a", 50, at(9, 9)), red("b", 200, at(2, 9)), red("gone", 80, at(5, 9))],
+      player_xp: 120,
+    });
+    expect(r.redeemed).toBe(3);
+    expect(r.savedInr).toBe(120); // an unknown reward counts as ₹0, not NaN
+    expect(r.xpSpent).toBe(330);
+    expect(r.affordable).toBe(1);
+    expect(r.next?.brand).toBe("Burger"); // cheapest still locked
+    expect(r.recent.map((x) => x.reward_id)).toEqual(["b", "gone", "a"]);
   });
 
   it("formats durations", () => {

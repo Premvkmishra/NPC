@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { Link } from "@tanstack/react-router";
 import {
   SECONDS_PER_REEL,
-  TIME_OF_DAY,
-  WEEKDAYS,
+  computeRewardStats,
   computeStats,
   formatDuration,
   type Stats,
@@ -208,6 +208,53 @@ function Places({ s }: { s: Stats }) {
   );
 }
 
+/** Vouchers redeemed with XP. Shares the Rewards page's query, so a redemption there shows up here. */
+function RewardsEarned() {
+  const q = useQuery({ queryKey: ["rewards"], queryFn: () => api.listRewards() });
+  if (q.isPending) return <LoadingState label="Counting your rewards" />;
+  if (q.isError) return null; // Rewards are a bonus; don't block the rest of the stats.
+  const r = computeRewardStats(q.data);
+  return (
+    <Card title="Rewards earned" className="bg-orange">
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {[
+          { label: "Vouchers", value: n(r.redeemed) },
+          { label: "Saved", value: `₹${n(r.savedInr)}` },
+          { label: "XP spent", value: n(r.xpSpent) },
+        ].map((t) => (
+          <div key={t.label} className="border-2 border-ink bg-card p-2">
+            <p className="font-mono text-xl font-bold leading-none">{t.value}</p>
+            <p className="hud-label text-[9px]">{t.label}</p>
+          </div>
+        ))}
+      </div>
+      {r.recent.length > 0 && (
+        <ul className="divide-y-2 divide-dashed divide-ink border-2 border-ink bg-card px-3">
+          {r.recent.map((x) => (
+            <li key={x.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+              <span className="min-w-0 truncate">
+                <b>{x.brand}</b> · {new Date(x.redeemed_at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+              </span>
+              <span className="shrink-0 font-mono text-xs">₹{x.discount_inr} off</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-sm">
+        <b>{n(r.balance)} XP</b> to spend.{" "}
+        {r.affordable > 0
+          ? `Enough for ${r.affordable} reward${r.affordable > 1 ? "s" : ""} right now.`
+          : r.next
+            ? `${n(r.next.cost_xp - r.balance)} XP more unlocks ${r.next.brand}.`
+            : ""}
+      </p>
+      <Link to="/rewards" className="block min-h-11 ink-border btn-press bg-card px-4 py-2 text-center font-pixel uppercase tracking-wider">
+        {r.redeemed ? "Browse rewards" : "Redeem your first reward"}
+      </Link>
+    </Card>
+  );
+}
+
 export function Analytics() {
   const q = useQuery({ queryKey: ["analytics"], queryFn: () => api.analytics() });
   if (q.isPending) return <LoadingState label="Crunching your adventures" />;
@@ -231,8 +278,6 @@ export function Analytics() {
   }
 
   const trend = s.recentPerWeek - s.previousPerWeek;
-  const peakTod = TIME_OF_DAY.reduce((a, b) => (s.timeOfDay[b.key] > s.timeOfDay[a.key] ? b : a));
-  const peakDay = s.weekdays.indexOf(Math.max(...s.weekdays));
 
   return (
     <>
@@ -294,6 +339,8 @@ export function Analytics() {
         />
       </section>
 
+      <AutopilotShift start={q.data.autopilot_start} now={q.data.autopilot_now} />
+
       <Card title="Quests per week">
         <Columns
           items={s.weeks.map((w, i) => ({
@@ -315,37 +362,8 @@ export function Analytics() {
         </p>
       </Card>
 
-      <AutopilotShift start={q.data.autopilot_start} now={q.data.autopilot_now} />
+      <RewardsEarned />
       <CategoryMix s={s} />
-
-      <Card title="When you head out">
-        <div className="grid grid-cols-4 gap-2">
-          {TIME_OF_DAY.map((t) => (
-            <div
-              key={t.key}
-              className={`border-2 border-ink p-2 text-center ${t.key === peakTod.key ? "bg-butter" : "bg-paper"}`}
-            >
-              <p className="font-mono text-xl font-bold leading-none">{s.timeOfDay[t.key]}</p>
-              <p className="hud-label text-[9px]">{t.label}</p>
-            </div>
-          ))}
-        </div>
-        <Columns
-          height={56}
-          items={WEEKDAYS.map((d, i) => ({
-            label: d,
-            value: s.weekdays[i]!,
-            highlight: i === peakDay,
-            tip: `${d}: ${s.weekdays[i]} quests`,
-          }))}
-        />
-        <p className="text-sm">
-          You're {/^[AEIOU]/.test(peakTod.label) ? "an" : "a"} <b>{peakTod.label.toLowerCase()}</b>{" "}
-          adventurer, most often on{" "}
-          <b>{WEEKDAYS[peakDay]}</b>s.
-        </p>
-      </Card>
-
       <Places s={s} />
 
       <Card title="How you play" className="bg-butter">

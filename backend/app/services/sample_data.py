@@ -8,7 +8,10 @@ from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
-from app.models import CompletionModel, PlayerAchievementModel, PlayerModel, PreferencesModel, QuestModel
+from app.models import (
+    CompletionModel, PlayerAchievementModel, PlayerModel, PreferencesModel, QuestModel,
+    RewardModel, RewardRedemptionModel,
+)
 from app.schemas import QuestLocation, QuestSource
 from app.services.achievements import evaluate_achievements
 from app.services.quest_engine import XP_MAP
@@ -61,6 +64,8 @@ SCHEDULE: List[Tuple[int, int, int]] = [
     (6, 18, 15), (4, 7, 13), (2, 19, 10), (1, 12, 4),
 ]
 DISMISSED = [2, 6, 11]  # template indices skipped once
+# (reward id, days ago, status); ids match the rewards seeded in main.init_app_state.
+SAMPLE_REDEMPTIONS = [("rew_raju_20", 40, "used"), ("rew_starbucks_100", 18, "used"), ("rew_amazon_100", 3, "active")]
 
 
 def _iso(dt: datetime) -> str:
@@ -132,6 +137,19 @@ def create_sample_player(db: Session) -> PlayerModel:
     for i, t_idx in enumerate(DISMISSED):
         db.add(_quest(pid, t_idx, "dismissed", now - timedelta(days=45 - i * 15)))
     # No open quest: Home generates a real one for today on first load.
+
+    # A few vouchers bought with XP along the way (redeeming spends XP, as on the Rewards page).
+    for reward_id, days_ago, status in SAMPLE_REDEMPTIONS:
+        reward = db.query(RewardModel).filter(RewardModel.id == reward_id).first()
+        if not reward or player.total_xp < reward.cost_xp:
+            continue
+        at = now - timedelta(days=days_ago)
+        player.total_xp -= reward.cost_xp
+        db.add(RewardRedemptionModel(
+            id=f"red_{uuid.uuid4().hex[:10]}", player_id=pid, reward_id=reward.id,
+            voucher_code=f"NPC-SAMPLE-{uuid.uuid4().hex[:6].upper()}", cost_xp=reward.cost_xp,
+            redeemed_at=_iso(at), expires_at=_iso(at + timedelta(days=30)), status=status,
+        ))
 
     player.level = math.floor(player.total_xp / 1000) + 1
     player.xp_in_level = player.total_xp % 1000

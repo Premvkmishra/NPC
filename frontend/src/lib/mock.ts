@@ -158,6 +158,17 @@ function sampleState(): State {
     player.total_xp += q.xp_reward; player.quests_completed += 1;
   });
   [2, 6, 9].forEach((t) => s.quests.push({ ...makeQuest(TEMPLATES[t]!), status: "dismissed" }));
+  // A few vouchers bought with XP along the way (redeeming spends XP, as on the Rewards page).
+  const redemptions: RewardRedemption[] = [];
+  for (const [rewardId, daysAgo, status] of [["rew_raju_20", 40, "used"], ["rew_starbucks_100", 18, "used"], ["rew_amazon_100", 3, "active"]] as const) {
+    const r = MOCK_REWARDS.find((x) => x.id === rewardId);
+    if (!r || player.total_xp < r.cost_xp) continue;
+    const at = Date.now() - daysAgo * 864e5;
+    player.total_xp -= r.cost_xp;
+    redemptions.unshift({ id: uid("red"), reward_id: r.id, reward_title: r.title, brand: r.brand, voucher_code: `NPC-SAMPLE-${uid("").slice(1, 7).toUpperCase()}`,
+      cost_xp: r.cost_xp, redeemed_at: new Date(at).toISOString(), expires_at: new Date(at + 30 * 864e5).toISOString(), status });
+  }
+  (s as State & { redemptions?: RewardRedemption[] }).redemptions = redemptions;
   Object.assign(player, levelFromXp(player.total_xp));
   const cats = new Set(s.journal.map((j) => j.category));
   const earned: Record<string, boolean> = { first_quest: true, three_quests: true, five_quests: true, all_categories: cats.size >= 5,

@@ -1,18 +1,16 @@
-import type { AnalyticsResponse, Category, Difficulty } from "./types";
+import type {
+  AnalyticsResponse,
+  Category,
+  Difficulty,
+  Reward,
+  RewardRedemption,
+  RewardsListResponse,
+} from "./types";
 
 /** Rough average time per short-video swipe, used only for the playful "reels not scrolled" figure. */
 export const SECONDS_PER_REEL = 30;
 const DAY = 864e5;
 const CATS: Category[] = ["explore", "social", "creativity", "courage", "awareness"];
-
-export type TimeOfDay = "morning" | "afternoon" | "evening" | "night";
-export const TIME_OF_DAY: { key: TimeOfDay; label: string; hours: string }[] = [
-  { key: "morning", label: "Morning", hours: "5–12" },
-  { key: "afternoon", label: "Afternoon", hours: "12–17" },
-  { key: "evening", label: "Evening", hours: "17–21" },
-  { key: "night", label: "Night", hours: "21–5" },
-];
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export interface PlaceStat {
   name: string;
@@ -43,8 +41,6 @@ export interface Stats {
   topCategory: Category | null;
   difficulty: Record<Difficulty, number>;
   weeks: WeekStat[];
-  timeOfDay: Record<TimeOfDay, number>;
-  weekdays: number[];
   activeDays: number;
   daysSinceFirst: number;
   recentPerWeek: number;
@@ -52,14 +48,6 @@ export interface Stats {
   followThrough: number | null;
   reflections: number;
   photos: number;
-}
-
-function timeOfDay(d: Date): TimeOfDay {
-  const h = d.getHours();
-  if (h >= 5 && h < 12) return "morning";
-  if (h >= 12 && h < 17) return "afternoon";
-  if (h >= 17 && h < 21) return "evening";
-  return "night";
 }
 
 /** Monday 00:00 local of the week containing d. */
@@ -107,17 +95,12 @@ export function computeStats(data: AnalyticsResponse, now = new Date(), weeksSho
     CATS.map((c) => [c, { quests: 0, minutes: 0 }]),
   ) as Stats["categories"];
   const difficulty: Record<Difficulty, number> = { easy: 0, medium: 0, hard: 0 };
-  const tod: Record<TimeOfDay, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 };
-  const weekdays = [0, 0, 0, 0, 0, 0, 0];
   const days = new Set<string>();
   for (const x of e) {
     categories[x.category].quests += 1;
     categories[x.category].minutes += x.duration_minutes;
     difficulty[x.difficulty] += 1;
-    const d = new Date(x.completed_at);
-    tod[timeOfDay(d)] += 1;
-    weekdays[(d.getDay() + 6) % 7]! += 1;
-    days.add(d.toDateString());
+    days.add(new Date(x.completed_at).toDateString());
   }
   const topCategory = e.length
     ? CATS.reduce((a, b) => (categories[b].quests > categories[a].quests ? b : a))
@@ -160,8 +143,6 @@ export function computeStats(data: AnalyticsResponse, now = new Date(), weeksSho
     topCategory,
     difficulty,
     weeks,
-    timeOfDay: tod,
-    weekdays,
     activeDays: days.size,
     daysSinceFirst: first == null ? 0 : Math.max(1, Math.ceil((now.getTime() - first) / DAY)),
     recentPerWeek: Math.round((last28 / 4) * 10) / 10,
@@ -169,6 +150,36 @@ export function computeStats(data: AnalyticsResponse, now = new Date(), weeksSho
     followThrough: decided ? Math.round((e.length / decided) * 100) : null,
     reflections: e.filter((x) => x.has_reflection).length,
     photos: e.filter((x) => x.has_photo).length,
+  };
+}
+
+export interface RewardStats {
+  redeemed: number;
+  savedInr: number;
+  xpSpent: number;
+  balance: number;
+  affordable: number;
+  next: Reward | null;
+  recent: (RewardRedemption & { discount_inr: number })[];
+}
+
+/** Summarise vouchers redeemed with XP: money saved, XP spent, and what's within reach next. */
+export function computeRewardStats(data: RewardsListResponse, recentShown = 3): RewardStats {
+  const byId = new Map(data.rewards.map((r) => [r.id, r]));
+  const withValue = data.redemptions.map((x) => ({
+    ...x,
+    discount_inr: byId.get(x.reward_id)?.discount_amount_inr ?? 0,
+  }));
+  const balance = data.player_xp;
+  const locked = data.rewards.filter((r) => r.cost_xp > balance).sort((a, b) => a.cost_xp - b.cost_xp);
+  return {
+    redeemed: withValue.length,
+    savedInr: withValue.reduce((a, x) => a + x.discount_inr, 0),
+    xpSpent: withValue.reduce((a, x) => a + x.cost_xp, 0),
+    balance,
+    affordable: data.rewards.filter((r) => r.cost_xp <= balance).length,
+    next: locked[0] ?? null,
+    recent: [...withValue].sort((a, b) => b.redeemed_at.localeCompare(a.redeemed_at)).slice(0, recentShown),
   };
 }
 
