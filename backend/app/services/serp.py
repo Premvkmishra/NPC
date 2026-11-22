@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import math
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Any
@@ -350,6 +351,36 @@ def geocode_city(city: str, db: Session) -> Optional[Tuple[float, float]]:
 
     logger.warning(f"Could not geocode city '{city}'.")
     return None
+def fetch_raw_network_or_fixture(engine: str, params: Dict[str, Any]) -> str:
+    """Helper to fetch raw JSON from SerpApi with 5.0s timeout, or fallback to fixture on timeout/error."""
+    raw_json_str = None
+    if settings.is_serpapi_live:
+        req_params = dict(params)
+        req_params["api_key"] = settings.SERPAPI_API_KEY
+        req_params["engine"] = engine
+        url = "https://serpapi.com/search.json"
+        try:
+            resp = httpx.get(url, params=req_params, timeout=5.0)
+            if resp.status_code == 200:
+                raw_json_str = resp.text
+            elif resp.status_code >= 500:
+                # Retry once on 5xx
+                resp2 = httpx.get(url, params=req_params, timeout=5.0)
+                if resp2.status_code == 200:
+                    raw_json_str = resp2.text
+        except Exception as e:
+            logging.getLogger("npc").warning(f"SerpApi network call failed for {engine}: {e}")
+
+    if not raw_json_str:
+        if engine == "google_maps":
+            data = load_fixture("serp_maps.json")
+        elif engine == "google_events":
+            data = load_fixture("serp_events.json")
+        else:
+            data = load_fixture("serp_search.json")
+        raw_json_str = json.dumps(data)
+
+    return raw_json_str
 
 
 def fetch_serp_cached(
@@ -438,6 +469,7 @@ def fetch_serp_cached(
     db.commit()
 
     return exps, False
+
 
 def get_experiences_for_category(
     category: str,

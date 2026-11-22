@@ -47,7 +47,7 @@ export function Onboarding() {
       if (r?.player?.id) {
         setPlayerId(r.player.id);
       }
-      setTimeout(() => setResult(r.autopilot), 1200);
+      setResult(r.autopilot);
     },
   });
 

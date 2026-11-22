@@ -410,6 +410,12 @@ def create_player(prefs_in: Preferences, db: Session = Depends(get_db)):
     # Initial Autopilot
     autopilot = calculate_autopilot(prefs_in, [])
 
+    # Pre-generate today's quest on onboarding so when player navigates to Home, it loads instantly (0ms)
+    try:
+        generate_quest(new_player, prefs_in, db)
+    except Exception as e:
+        logger.warning(f"Could not pre-warm quest on player creation: {e}")
+
     return CreatePlayerResponse(
         player=model_to_player(new_player),
         autopilot=autopilot
