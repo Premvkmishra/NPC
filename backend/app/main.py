@@ -30,9 +30,11 @@ from app.schemas import (
     GenerateQuestRequest, QuestResponse, QuestsListResponse,
     CompleteQuestRequest, CompleteQuestResponse, ExperiencesListResponse,
     ExperienceResponse, JourneyResponse, WeeklyRecapResponse, WeeklyRecapStats,
+    AnalyticsEntry, AnalyticsResponse,
     Category, Difficulty, QuestStatus, QuestLocation, QuestSource,
     Reward, RewardRedemption, RewardsListResponse, RedeemRewardResponse
 )
+from app.services.sample_data import create_sample_player
 from app.services.autopilot import calculate_autopilot
 from app.services.achievements import evaluate_achievements, ALL_ACHIEVEMENTS
 from app.services.serp import (
@@ -540,6 +542,12 @@ def create_player(prefs_in: Preferences, db: Session = Depends(get_db)):
         player=model_to_player(new_player),
         autopilot=autopilot
     )
+
+@app.post("/api/v1/players/sample", response_model=CreatePlayerResponse, status_code=status.HTTP_201_CREATED)
+def create_sample(db: Session = Depends(get_db)):
+    """Create a demo player with ~2 months of history, for showing off analytics."""
+    player = create_sample_player(db)
+    return CreatePlayerResponse(player=model_to_player(player), autopilot=get_player_autopilot(player, db))
 
 @app.get("/api/v1/players/me", response_model=PlayerMeResponse)
 def get_player_me(
@@ -1072,6 +1080,45 @@ def get_journey(
         achievements=achievements,
         journal=journal,
         category_counts=cat_counts
+    )
+
+@app.get("/api/v1/analytics", response_model=AnalyticsResponse)
+def get_analytics(
+    player: PlayerModel = Depends(get_current_player),
+    db: Session = Depends(get_db)
+):
+    """Raw per-quest facts; the client aggregates them (in the player's own timezone)."""
+    quests = db.query(QuestModel).filter(QuestModel.player_id == player.id).all()
+    completions = {c.quest_id: c for c in db.query(CompletionModel).filter(CompletionModel.player_id == player.id).all()}
+
+    entries: List[AnalyticsEntry] = []
+    for q in quests:
+        c = completions.get(q.id)
+        if q.status != "completed" or not c:
+            continue
+        mq = model_to_quest(q)
+        entries.append(AnalyticsEntry(
+            quest_id=q.id,
+            title=q.title,
+            category=mq.category,
+            difficulty=mq.difficulty,
+            duration_minutes=q.duration_minutes,
+            estimated_cost_inr=q.estimated_cost_inr,
+            xp_earned=c.xp_awarded,
+            completed_at=c.completed_at,
+            location=mq.location,
+            has_reflection=bool((c.reflection or "").strip()),
+            has_photo=bool(c.photo_path),
+        ))
+    entries.sort(key=lambda e: e.completed_at, reverse=True)
+
+    return AnalyticsResponse(
+        player=model_to_player(player),
+        entries=entries,
+        quests_dismissed=sum(1 for q in quests if q.status == "dismissed"),
+        quests_open=sum(1 for q in quests if q.status in ("suggested", "active")),
+        autopilot_start=calculate_autopilot(model_to_preferences(player.preferences), []),
+        autopilot_now=get_player_autopilot(player, db),
     )
 
 @app.get("/api/v1/journey/weekly-recap", response_model=WeeklyRecapResponse)
