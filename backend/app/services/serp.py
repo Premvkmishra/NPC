@@ -1,6 +1,8 @@
 import hashlib
 import json
+import logging
 import math
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict, Any
@@ -264,6 +266,38 @@ def parse_search_results(
 
     return results
 
+def fetch_raw_network_or_fixture(engine: str, params: Dict[str, Any]) -> str:
+    """Helper to fetch raw JSON from SerpApi with 5.0s timeout, or fallback to fixture on timeout/error."""
+    raw_json_str = None
+    if settings.is_serpapi_live:
+        req_params = dict(params)
+        req_params["api_key"] = settings.SERPAPI_API_KEY
+        req_params["engine"] = engine
+        url = "https://serpapi.com/search.json"
+        try:
+            resp = httpx.get(url, params=req_params, timeout=5.0)
+            if resp.status_code == 200:
+                raw_json_str = resp.text
+            elif resp.status_code >= 500:
+                # Retry once on 5xx
+                resp2 = httpx.get(url, params=req_params, timeout=5.0)
+                if resp2.status_code == 200:
+                    raw_json_str = resp2.text
+        except Exception as e:
+            logging.getLogger("npc").warning(f"SerpApi network call failed for {engine}: {e}")
+
+    if not raw_json_str:
+        if engine == "google_maps":
+            data = load_fixture("serp_maps.json")
+        elif engine == "google_events":
+            data = load_fixture("serp_events.json")
+        else:
+            data = load_fixture("serp_search.json")
+        raw_json_str = json.dumps(data)
+
+    return raw_json_str
+
+
 def fetch_serp_cached(
     engine: str,
     params: Dict[str, Any],
@@ -291,42 +325,8 @@ def fetch_serp_cached(
         except Exception:
             pass
 
-    # 2. Check if live SerpApi or mock
-    raw_json_str = None
-    if settings.is_serpapi_live:
-        # Live SerpApi call with retry once on 5xx
-        req_params = dict(params)
-        req_params["api_key"] = settings.SERPAPI_API_KEY
-        req_params["engine"] = engine
-        url = "https://serpapi.com/search.json"
-
-        last_resp = None
-        for attempt in range(2):
-            try:
-                resp = httpx.get(url, params=req_params, timeout=15.0)
-                if resp.status_code < 500:
-                    last_resp = resp
-                    break
-                last_resp = resp
-            except Exception as e:
-                import logging
-                logging.getLogger("npc").warning(f"SerpApi attempt {attempt+1} failed: {e}")
-
-        if last_resp and last_resp.is_success:
-            raw_json_str = last_resp.text
-        else:
-            # Fall back to mock if error
-            pass
-
-    if not raw_json_str:
-        # Load from fixture
-        if engine == "google_maps":
-            data = load_fixture("serp_maps.json")
-        elif engine == "google_events":
-            data = load_fixture("serp_events.json")
-        else:
-            data = load_fixture("serp_search.json")
-        raw_json_str = json.dumps(data)
+    # 2. Fetch raw network or fixture
+    raw_json_str = fetch_raw_network_or_fixture(engine, params)
 
     # 3. Store into cache
     data = json.loads(raw_json_str)
@@ -378,6 +378,7 @@ def fetch_serp_cached(
 
     return exps, False
 
+
 def get_experiences_for_category(
     category: str,
     city: str,
@@ -396,35 +397,57 @@ def get_experiences_for_category(
     """
     p_lat = lat or DEFAULT_MUMBAI_LAT
     p_lng = lng or DEFAULT_MUMBAI_LNG
-    results: List[Experience] = []
 
+    query_configs = []
     if category == "explore":
-        exps, _ = fetch_serp_cached("google_maps", {"q": "hidden gems unusual landmarks", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_s, _ = fetch_serp_cached("google", {"q": f"offbeat places {city}"}, db, p_lat, p_lng)
-        results.extend(exps_s)
+        query_configs = [
+            ("google_maps", {"q": "hidden gems unusual landmarks", "ll": f"@{p_lat},{p_lng},14z"}),
+            ("google", {"q": f"offbeat places {city}"})
+        ]
     elif category == "creativity":
-        exps, _ = fetch_serp_cached("google_maps", {"q": "art gallery pottery studio", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_e, _ = fetch_serp_cached("google_events", {"q": f"workshop in {city}"}, db, p_lat, p_lng)
-        results.extend(exps_e)
+        query_configs = [
+            ("google_maps", {"q": "art gallery pottery studio", "ll": f"@{p_lat},{p_lng},14z"}),
+            ("google_events", {"q": f"workshop in {city}"})
+        ]
     elif category == "social":
-        exps, _ = fetch_serp_cached("google_events", {"q": f"meetup open mic community event in {city}"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_m, _ = fetch_serp_cached("google_maps", {"q": "live comedy open mic cafe", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps_m)
+        query_configs = [
+            ("google_events", {"q": f"meetup open mic community event in {city}"}),
+            ("google_maps", {"q": "live comedy open mic cafe", "ll": f"@{p_lat},{p_lng},14z"})
+        ]
     elif category == "courage":
-        exps, _ = fetch_serp_cached("google", {"q": f"free open mic try-something-scary beginner friendly {city}"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_e, _ = fetch_serp_cached("google_events", {"q": f"improv theater beginner in {city}"}, db, p_lat, p_lng)
-        results.extend(exps_e)
+        query_configs = [
+            ("google", {"q": f"free open mic try-something-scary beginner friendly {city}"}),
+            ("google_events", {"q": f"improv theater beginner in {city}"})
+        ]
     elif category == "awareness":
-        exps, _ = fetch_serp_cached("google_maps", {"q": "park garden quiet library", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_s, _ = fetch_serp_cached("google", {"q": f"slow walk nature spots {city}"}, db, p_lat, p_lng)
-        results.extend(exps_s)
+        query_configs = [
+            ("google_maps", {"q": "park garden quiet library", "ll": f"@{p_lat},{p_lng},14z"}),
+            ("google", {"q": f"slow walk nature spots {city}"})
+        ]
     else:
-        exps, _ = fetch_serp_cached("google_maps", {"q": f"places to visit {city}", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
+        query_configs = [
+            ("google_maps", {"q": f"places to visit {city}", "ll": f"@{p_lat},{p_lng},14z"})
+        ]
+
+    # Pre-check database cache on main thread
+    uncached_queries = []
+    for eng, par in query_configs:
+        qh = query_hash(eng, par)
+        cached_entry = db.query(SerpCacheModel).filter(SerpCacheModel.query_hash == qh).first()
+        if not (cached_entry and is_cache_valid(cached_entry.fetched_at, settings.SERP_CACHE_TTL_HOURS)):
+            uncached_queries.append((eng, par))
+
+    # Fetch any missing queries concurrently in background threads
+    if uncached_queries:
+        with ThreadPoolExecutor(max_workers=len(uncached_queries)) as pool:
+            futures = [pool.submit(fetch_raw_network_or_fixture, eng, par) for eng, par in uncached_queries]
+            for f in futures:
+                f.result() # Wait for all network calls to finish
+
+    # Parse and load all results on the main thread (thread-safe with SQLite)
+    results: List[Experience] = []
+    for eng, par in query_configs:
+        exps, _ = fetch_serp_cached(eng, par, db, p_lat, p_lng)
         results.extend(exps)
 
     # Filter by max_distance_km if distance is known
