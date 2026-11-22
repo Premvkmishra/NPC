@@ -65,7 +65,10 @@ SCHEDULE: List[Tuple[int, int, int]] = [
 ]
 DISMISSED = [2, 6, 11]  # template indices skipped once
 # (reward id, days ago, status); ids match the rewards seeded in main.init_app_state.
-SAMPLE_REDEMPTIONS = [("rew_raju_20", 40, "used"), ("rew_starbucks_100", 18, "used"), ("rew_amazon_100", 3, "active")]
+SAMPLE_REDEMPTIONS = [
+    ("rew_raju_20", 48, "used"), ("rew_andheri_idli_50", 33, "used"), ("rew_starbucks_100", 18, "used"),
+    ("rew_macd_75", 10, "used"), ("rew_amazon_100", 3, "active"), ("rew_raju_20", 1, "active"),
+]
 
 
 def _iso(dt: datetime) -> str:

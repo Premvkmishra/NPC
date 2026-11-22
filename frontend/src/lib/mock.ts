@@ -137,6 +137,12 @@ const SAMPLE_SCHEDULE: [number, number, number][] = [
   [10, 19, 9], [8, 13, 1], [6, 18, 6], [4, 7, 8], [2, 19, 2], [1, 12, 0],
 ];
 
+// [reward id, days ago, status]; ids match MOCK_REWARDS and the backend's seeded rewards.
+const SAMPLE_REDEMPTIONS = [
+  ["rew_raju_20", 48, "used"], ["rew_andheri_idli_50", 33, "used"], ["rew_starbucks_100", 18, "used"],
+  ["rew_macd_75", 10, "used"], ["rew_amazon_100", 3, "active"], ["rew_raju_20", 1, "active"],
+] as const;
+
 /** A demo save with ~2 months of history so the analytics tab has something to show. */
 function sampleState(): State {
   const s = freshState();
@@ -160,7 +166,7 @@ function sampleState(): State {
   [2, 6, 9].forEach((t) => s.quests.push({ ...makeQuest(TEMPLATES[t]!), status: "dismissed" }));
   // A few vouchers bought with XP along the way (redeeming spends XP, as on the Rewards page).
   const redemptions: RewardRedemption[] = [];
-  for (const [rewardId, daysAgo, status] of [["rew_raju_20", 40, "used"], ["rew_starbucks_100", 18, "used"], ["rew_amazon_100", 3, "active"]] as const) {
+  for (const [rewardId, daysAgo, status] of SAMPLE_REDEMPTIONS) {
     const r = MOCK_REWARDS.find((x) => x.id === rewardId);
     if (!r || player.total_xp < r.cost_xp) continue;
     const at = Date.now() - daysAgo * 864e5;
