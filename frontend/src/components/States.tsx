@@ -1,6 +1,7 @@
 import { ApiError } from "@/lib/errors";
 import { Btn } from "./Btn";
 import { DialogueBox } from "./DialogueBox";
+import { useRestart } from "./ResetProfile";
 
 export function LoadingState({ label = "Loading the map…" }: { label?: string }) {
   return (
@@ -11,7 +12,19 @@ export function LoadingState({ label = "Loading the map…" }: { label?: string 
   );
 }
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+  const restart = useRestart();
   const msg = error instanceof ApiError || error instanceof Error ? error.message : "Something glitched.";
+
+  // The saved player no longer exists on the server (e.g. the database was reset): retrying won't help.
+  if (error instanceof ApiError && error.code === "player_required") {
+    return (
+      <div className="space-y-3 py-4" role="alert">
+        <DialogueBox speaker="Uh oh" text="We couldn't find your save file. Start a new one to keep playing." />
+        <Btn variant="butter" onClick={restart}>Start a new save file</Btn>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 py-4" role="alert">
       <DialogueBox speaker="Uh oh" text={`The map didn't load. ${msg} Try again?`} />

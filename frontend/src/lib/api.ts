@@ -1,6 +1,6 @@
-import type { NpcClient } from "./types";
+import type { Autopilot, NpcClient, Player } from "./types";
 import { ApiError } from "./errors";
-import { mockClient } from "./mock";
+import { mockClient, STORE as MOCK_STORE } from "./mock";
 
 export const PLAYER_KEY = "npc_player_id";
 export const API_BASE: string = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -11,6 +11,11 @@ export function getPlayerId(): string | null {
   return typeof window === "undefined" ? null : window.localStorage.getItem(PLAYER_KEY);
 }
 export function setPlayerId(id: string) { window.localStorage.setItem(PLAYER_KEY, id); }
+/** Forget the current player on this device (and the offline save), so onboarding starts fresh. */
+export function clearPlayer() {
+  window.localStorage.removeItem(PLAYER_KEY);
+  window.localStorage.removeItem(MOCK_STORE);
+}
 
 async function req<T>(method: string, path: string, opts: { body?: unknown; auth?: boolean } = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };

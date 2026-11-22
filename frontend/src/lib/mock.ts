@@ -5,7 +5,7 @@ import type {
 import { ApiError } from "./errors";
 import { AUTOPILOT_DISCLAIMER, XP_BY_DIFFICULTY, autopilotLabel, levelFromXp } from "./game";
 
-const STORE = "npc_mock_state";
+export const STORE = "npc_mock_state";
 const PLAYER_KEY = "npc_player_id";
 const now = () => new Date().toISOString();
 const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 10)}`;
