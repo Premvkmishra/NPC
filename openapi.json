@@ -79,6 +79,25 @@
         }
       }
     },
+    "/api/v1/players/sample": {
+      "post": {
+        "summary": "Create Sample",
+        "description": "Create a demo player with ~2 months of history, for showing off analytics.",
+        "operationId": "create_sample_api_v1_players_sample_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePlayerResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/players/me": {
       "get": {
         "summary": "Get Player Me",
@@ -860,6 +879,53 @@
         }
       }
     },
+    "/api/v1/analytics": {
+      "get": {
+        "summary": "Get Analytics",
+        "description": "Raw per-quest facts; the client aggregates them (in the player's own timezone).",
+        "operationId": "get_analytics_api_v1_analytics_get",
+        "parameters": [
+          {
+            "name": "X-Player-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Player-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/journey/weekly-recap": {
       "get": {
         "summary": "Get Weekly Recap",
@@ -980,6 +1046,131 @@
           "completed_at"
         ],
         "title": "ActivityItem"
+      },
+      "AnalyticsEntry": {
+        "properties": {
+          "quest_id": {
+            "type": "string",
+            "title": "Quest Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "explore",
+              "social",
+              "creativity",
+              "courage",
+              "awareness"
+            ],
+            "title": "Category"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "title": "Difficulty"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "title": "Duration Minutes"
+          },
+          "estimated_cost_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Cost Inr"
+          },
+          "xp_earned": {
+            "type": "integer",
+            "title": "Xp Earned"
+          },
+          "completed_at": {
+            "type": "string",
+            "title": "Completed At"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestLocation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "has_reflection": {
+            "type": "boolean",
+            "title": "Has Reflection"
+          },
+          "has_photo": {
+            "type": "boolean",
+            "title": "Has Photo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quest_id",
+          "title",
+          "category",
+          "difficulty",
+          "duration_minutes",
+          "xp_earned",
+          "completed_at",
+          "has_reflection",
+          "has_photo"
+        ],
+        "title": "AnalyticsEntry",
+        "description": "One completed quest, with the details the analytics tab aggregates."
+      },
+      "AnalyticsResponse": {
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/Player"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "quests_dismissed": {
+            "type": "integer",
+            "title": "Quests Dismissed"
+          },
+          "quests_open": {
+            "type": "integer",
+            "title": "Quests Open"
+          },
+          "autopilot_start": {
+            "$ref": "#/components/schemas/Autopilot"
+          },
+          "autopilot_now": {
+            "$ref": "#/components/schemas/Autopilot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "player",
+          "entries",
+          "quests_dismissed",
+          "quests_open",
+          "autopilot_start",
+          "autopilot_now"
+        ],
+        "title": "AnalyticsResponse"
       },
       "Autopilot": {
         "properties": {

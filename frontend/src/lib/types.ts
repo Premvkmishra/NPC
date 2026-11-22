@@ -53,11 +53,21 @@ export interface WeeklyRecap {
   stats: { quests_completed: number; new_places: number; categories_tried: Category[]; xp_earned: number };
   generated_by: "llm" | "template";
 }
+export interface AnalyticsEntry {
+  quest_id: string; title: string; category: Category; difficulty: Difficulty; duration_minutes: number;
+  estimated_cost_inr: number | null; xp_earned: number; completed_at: string; location: QuestLocation | null;
+  has_reflection: boolean; has_photo: boolean;
+}
+export interface AnalyticsResponse {
+  player: Player; entries: AnalyticsEntry[]; quests_dismissed: number; quests_open: number;
+  autopilot_start: Autopilot; autopilot_now: Autopilot;
+}
 export type ErrorCode = "validation_error" | "not_found" | "player_required" | "upstream_error" | "no_suitable_quest";
 
 export interface NpcClient {
   health(): Promise<Health>;
   createPlayer(p: Preferences): Promise<{ player: Player; autopilot: Autopilot }>;
+  createSamplePlayer(): Promise<{ player: Player; autopilot: Autopilot }>;
   getMe(): Promise<PlayerMe>;
   updateMe(p: Partial<Preferences>): Promise<PlayerMe>;
   home(): Promise<HomeResponse>;
@@ -72,4 +82,5 @@ export interface NpcClient {
   questFromExperience(id: string): Promise<{ quest: Quest }>;
   journey(): Promise<JourneyResponse>;
   weeklyRecap(): Promise<WeeklyRecap>;
+  analytics(): Promise<AnalyticsResponse>;
 }
