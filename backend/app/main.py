@@ -20,7 +20,8 @@ from app.config import settings, BASE_DIR
 from app.database import Base, engine, get_db
 from app.models import (
     PlayerModel, PreferencesModel, QuestModel, ExperienceModel,
-    CompletionModel, PlayerAchievementModel, SerpCacheModel
+    CompletionModel, PlayerAchievementModel, SerpCacheModel,
+    RewardModel, RewardRedemptionModel
 )
 from app.schemas import (
     Player, Preferences, PreferencesUpdate, Autopilot, Quest, Experience,
@@ -30,7 +31,8 @@ from app.schemas import (
     CompleteQuestRequest, CompleteQuestResponse, ExperiencesListResponse,
     ExperienceResponse, JourneyResponse, WeeklyRecapResponse, WeeklyRecapStats,
     AnalyticsEntry, AnalyticsResponse,
-    Category, Difficulty, QuestStatus, QuestLocation, QuestSource
+    Category, Difficulty, QuestStatus, QuestLocation, QuestSource,
+    Reward, RewardRedemption, RewardsListResponse, RedeemRewardResponse
 )
 from app.services.sample_data import create_sample_player
 from app.services.autopilot import calculate_autopilot
@@ -98,6 +100,93 @@ def init_app_state(app_instance: Optional[FastAPI] = None):
                     why_worth_it=e.why_worth_it,
                     fetched_at=e.fetched_at
                 ))
+            db.commit()
+
+        # Seed default rewards if rewards table is empty
+        reward_count = db.query(RewardModel).count()
+        if reward_count == 0:
+            default_rewards = [
+                {
+                    "id": "rew_raju_20",
+                    "title": "₹20 OFF at Raju Idli Stall",
+                    "description": "Crispy medu vada, piping hot idlis & filter coffee right outside Andheri Station.",
+                    "brand": "Raju Idli Stall",
+                    "category": "food",
+                    "discount_amount_inr": 20,
+                    "cost_xp": 50,
+                    "location": "Platform 1 Exit, Andheri Station West",
+                    "terms": "Valid on any billing above ₹40. Flash voucher code at the counter.",
+                    "icon_key": "star",
+                    "is_active": 1
+                },
+                {
+                    "id": "rew_andheri_idli_50",
+                    "title": "₹50 OFF on Any Idli / Dosa Corner",
+                    "description": "Redeem ₹50 discount on any South Indian breakfast stall or eatery across Andheri Station market.",
+                    "brand": "Andheri Station Food Network",
+                    "category": "food",
+                    "discount_amount_inr": 50,
+                    "cost_xp": 100,
+                    "location": "Station Road Market, Andheri West",
+                    "terms": "Valid on bill of ₹100 or more at participating street stalls & counters.",
+                    "icon_key": "heart",
+                    "is_active": 1
+                },
+                {
+                    "id": "rew_macd_75",
+                    "title": "₹75 OFF or Free McFlurry at McDonald's",
+                    "description": "Flat ₹75 off on your favourite burgers and meals, or get a free McFlurry with any combo.",
+                    "brand": "McDonald's",
+                    "category": "food",
+                    "discount_amount_inr": 75,
+                    "cost_xp": 150,
+                    "location": "All McDonald's Outlets & McDelivery",
+                    "terms": "Enter code at McDonald's Self-Ordering Kiosk or McDelivery app.",
+                    "icon_key": "sword",
+                    "is_active": 1
+                },
+                {
+                    "id": "rew_starbucks_100",
+                    "title": "₹100 OFF Starbucks Beverage Voucher",
+                    "description": "Treat yourself to handcrafted Frappuccinos, artisanal cold brews, or warm bakery bites.",
+                    "brand": "Starbucks Coffee",
+                    "category": "lifestyle",
+                    "discount_amount_inr": 100,
+                    "cost_xp": 200,
+                    "location": "All Starbucks Outlets / In-app",
+                    "terms": "Show barcode or enter code on Starbucks India app at payment.",
+                    "icon_key": "crown",
+                    "is_active": 1
+                },
+                {
+                    "id": "rew_amazon_50",
+                    "title": "₹50 Amazon Pay Gift Voucher",
+                    "description": "Instant ₹50 voucher balance for shopping, food orders, or recharge on Amazon.",
+                    "brand": "Amazon",
+                    "category": "shopping",
+                    "discount_amount_inr": 50,
+                    "cost_xp": 100,
+                    "location": "Online / Amazon India App",
+                    "terms": "Redeem voucher code instantly in Amazon Pay -> Add Gift Card.",
+                    "icon_key": "gift",
+                    "is_active": 1
+                },
+                {
+                    "id": "rew_amazon_100",
+                    "title": "₹100 Amazon Pay Gift Voucher",
+                    "description": "Instant ₹100 voucher balance for shopping, movies, or bill payments on Amazon.",
+                    "brand": "Amazon",
+                    "category": "shopping",
+                    "discount_amount_inr": 100,
+                    "cost_xp": 200,
+                    "location": "Online / Amazon India App",
+                    "terms": "Redeem voucher code instantly in Amazon Pay -> Add Gift Card.",
+                    "icon_key": "gift",
+                    "is_active": 1
+                }
+            ]
+            for r in default_rewards:
+                db.add(RewardModel(**r))
             db.commit()
     finally:
         db.close()
@@ -332,6 +421,37 @@ def nearby_for_player(exps: List[Experience], prefs: Preferences) -> List[Experi
             out.append(e.model_copy(update={"distance_km": None}))
     out.sort(key=lambda e: (e.distance_km is None, e.distance_km or 0.0))
     return out
+
+
+def model_to_reward(r: RewardModel) -> Reward:
+    return Reward(
+        id=r.id,
+        title=r.title,
+        description=r.description,
+        brand=r.brand,
+        category=r.category,
+        discount_amount_inr=r.discount_amount_inr,
+        cost_xp=r.cost_xp,
+        location=r.location,
+        terms=r.terms,
+        icon_key=r.icon_key,
+        is_active=bool(r.is_active)
+    )
+
+def model_to_redemption(red: RewardRedemptionModel) -> RewardRedemption:
+    reward_title = red.reward.title if red.reward else "Perk Voucher"
+    brand = red.reward.brand if red.reward else "NPC Partner"
+    return RewardRedemption(
+        id=red.id,
+        reward_id=red.reward_id,
+        reward_title=reward_title,
+        brand=brand,
+        voucher_code=red.voucher_code,
+        cost_xp=red.cost_xp,
+        redeemed_at=red.redeemed_at,
+        expires_at=red.expires_at,
+        status=red.status
+    )
 
 
 def get_player_autopilot(player: PlayerModel, db: Session) -> Autopilot:
@@ -1053,6 +1173,87 @@ def get_weekly_recap(
         ),
         generated_by=gen_by # type: ignore
     )
+
+# Rewards & Perks
+@app.get("/api/v1/rewards", response_model=RewardsListResponse)
+def list_rewards(
+    player: PlayerModel = Depends(get_current_player),
+    db: Session = Depends(get_db)
+):
+    rewards_models = db.query(RewardModel).filter(RewardModel.is_active == 1).all()
+    redemptions_models = db.query(RewardRedemptionModel).filter(
+        RewardRedemptionModel.player_id == player.id
+    ).order_by(RewardRedemptionModel.redeemed_at.desc()).all()
+
+    return RewardsListResponse(
+        rewards=[model_to_reward(r) for r in rewards_models],
+        redemptions=[model_to_redemption(r) for r in redemptions_models],
+        player_xp=player.total_xp
+    )
+
+@app.post("/api/v1/rewards/{reward_id}/redeem", response_model=RedeemRewardResponse)
+def redeem_reward(
+    reward_id: str,
+    player: PlayerModel = Depends(get_current_player),
+    db: Session = Depends(get_db)
+):
+    reward = db.query(RewardModel).filter(RewardModel.id == reward_id).first()
+    if not reward or not reward.is_active:
+        raise AppException(404, "not_found", "Reward not found or no longer active.")
+
+    if player.total_xp < reward.cost_xp:
+        raise AppException(
+            422,
+            "validation_error",
+            f"Not enough XP! You have {player.total_xp} XP, but need {reward.cost_xp} XP."
+        )
+
+    # Deduct XP
+    player.total_xp -= reward.cost_xp
+    player.level = math.floor(player.total_xp / 1000) + 1
+    player.xp_in_level = player.total_xp % 1000
+
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat().replace("+00:00", "Z")
+    expires_iso = (now + timedelta(days=30)).isoformat().replace("+00:00", "Z")
+
+    brand_slug = "".join(c for c in reward.brand[:6].upper() if c.isalnum()) or "NPC"
+    code_suffix = uuid.uuid4().hex[:6].upper()
+    voucher_code = f"NPC-{brand_slug}-{code_suffix}"
+
+    redemption = RewardRedemptionModel(
+        id=f"red_{uuid.uuid4().hex[:10]}",
+        player_id=player.id,
+        reward_id=reward.id,
+        voucher_code=voucher_code,
+        cost_xp=reward.cost_xp,
+        redeemed_at=now_iso,
+        expires_at=expires_iso,
+        status="active"
+    )
+    db.add(redemption)
+    db.commit()
+    db.refresh(player)
+    db.refresh(redemption)
+
+    return RedeemRewardResponse(
+        success=True,
+        redemption=model_to_redemption(redemption),
+        player=model_to_player(player),
+        reward=model_to_reward(reward),
+        code=voucher_code,
+        message=f"Successfully redeemed {reward.title} for {reward.cost_xp} XP!"
+    )
+
+@app.get("/api/v1/rewards/my-redemptions")
+def get_my_redemptions(
+    player: PlayerModel = Depends(get_current_player),
+    db: Session = Depends(get_db)
+):
+    redemptions_models = db.query(RewardRedemptionModel).filter(
+        RewardRedemptionModel.player_id == player.id
+    ).order_by(RewardRedemptionModel.redeemed_at.desc()).all()
+    return {"redemptions": [model_to_redemption(r) for r in redemptions_models]}
 
 # Initialize app state (DB tables, fixtures seed, openapi.json export)
 init_app_state(app)

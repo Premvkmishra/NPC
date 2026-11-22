@@ -64,6 +64,47 @@ export interface AnalyticsResponse {
 }
 export type ErrorCode = "validation_error" | "not_found" | "player_required" | "upstream_error" | "no_suitable_quest";
 
+export interface Reward {
+  id: string;
+  title: string;
+  description: string;
+  brand: string;
+  category: string;
+  discount_amount_inr: number;
+  cost_xp: number;
+  location: string | null;
+  terms: string | null;
+  icon_key: string;
+  is_active: boolean;
+}
+
+export interface RewardRedemption {
+  id: string;
+  reward_id: string;
+  reward_title: string;
+  brand: string;
+  voucher_code: string;
+  cost_xp: number;
+  redeemed_at: string;
+  expires_at: string;
+  status: string;
+}
+
+export interface RewardsListResponse {
+  rewards: Reward[];
+  redemptions: RewardRedemption[];
+  player_xp: number;
+}
+
+export interface RedeemRewardResponse {
+  success: boolean;
+  redemption: RewardRedemption;
+  player: Player;
+  reward: Reward;
+  code: string;
+  message: string;
+}
+
 export interface NpcClient {
   health(): Promise<Health>;
   createPlayer(p: Preferences): Promise<{ player: Player; autopilot: Autopilot }>;
@@ -83,4 +124,7 @@ export interface NpcClient {
   journey(): Promise<JourneyResponse>;
   weeklyRecap(): Promise<WeeklyRecap>;
   analytics(): Promise<AnalyticsResponse>;
+  listRewards(): Promise<RewardsListResponse>;
+  redeemReward(rewardId: string): Promise<RedeemRewardResponse>;
+  myRedemptions(): Promise<{ redemptions: RewardRedemption[] }>;
 }

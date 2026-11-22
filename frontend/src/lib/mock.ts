@@ -1,6 +1,6 @@
 import type {
   Achievement, ActivityItem, Autopilot, Category, CompleteResponse, Difficulty, Experience,
-  JournalEntry, NpcClient, Player, Preferences, Quest,
+  JournalEntry, NpcClient, Player, Preferences, Quest, Reward, RewardRedemption,
 } from "./types";
 import { ApiError } from "./errors";
 import { AUTOPILOT_DISCLAIMER, XP_BY_DIFFICULTY, autopilotLabel, levelFromXp } from "./game";
@@ -294,4 +294,134 @@ export const mockClient: NpcClient = {
     return { week_start: start.toISOString(), week_end: end.toISOString(), summary,
       stats: { quests_completed: week.length, new_places: week.filter((j) => j.location_name).length, categories_tried: cats, xp_earned: xp }, generated_by: "template" };
   },
+  async listRewards() {
+    await delay(); const s = load(); const player = requirePlayer(s);
+    return {
+      rewards: MOCK_REWARDS,
+      redemptions: (s as any).redemptions ?? [],
+      player_xp: player.total_xp
+    };
+  },
+  async redeemReward(rewardId: string) {
+    await delay(); const s = load(); const player = requirePlayer(s);
+    const reward = MOCK_REWARDS.find((r) => r.id === rewardId);
+    if (!reward) throw new ApiError("not_found", "Reward not found.", 404);
+    if (player.total_xp < reward.cost_xp) throw new ApiError("validation_error", `Need ${reward.cost_xp} XP to redeem this reward.`, 422);
+
+    player.total_xp -= reward.cost_xp;
+    player.level = Math.floor(player.total_xp / 1000) + 1;
+    player.xp_in_level = player.total_xp % 1000;
+
+    const brandSlug = reward.brand.slice(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, "") || "NPC";
+    const voucher_code = `NPC-${brandSlug}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const redemption: RewardRedemption = {
+      id: uid("red"),
+      reward_id: reward.id,
+      reward_title: reward.title,
+      brand: reward.brand,
+      voucher_code,
+      cost_xp: reward.cost_xp,
+      redeemed_at: now(),
+      expires_at: new Date(Date.now() + 30 * 864e5).toISOString(),
+      status: "active"
+    };
+
+    if (!(s as any).redemptions) (s as any).redemptions = [];
+    (s as any).redemptions.unshift(redemption);
+    save(s);
+
+    return {
+      success: true,
+      redemption,
+      player,
+      reward,
+      code: voucher_code,
+      message: `Successfully redeemed ${reward.title}!`
+    };
+  },
+  async myRedemptions() {
+    await delay(); const s = load(); requirePlayer(s);
+    return { redemptions: (s as any).redemptions ?? [] };
+  },
 };
+
+const MOCK_REWARDS: Reward[] = [
+  {
+    id: "rew_raju_20",
+    title: "₹20 OFF on Raju Idli Stall",
+    description: "Crispy medu vada, piping hot idlis & filter coffee right outside Andheri Station.",
+    brand: "Raju Idli Stall",
+    category: "food",
+    discount_amount_inr: 20,
+    cost_xp: 50,
+    location: "Platform 1 Exit, Andheri Station West",
+    terms: "Valid on any billing above ₹40. Flash voucher code at the counter.",
+    icon_key: "star",
+    is_active: true
+  },
+  {
+    id: "rew_andheri_idli_50",
+    title: "₹50 OFF on Any Idli / Dosa Corner",
+    description: "Redeem ₹50 discount on any South Indian breakfast stall or eatery across Andheri Station market.",
+    brand: "Andheri Station Food Network",
+    category: "food",
+    discount_amount_inr: 50,
+    cost_xp: 100,
+    location: "Station Road Market, Andheri West",
+    terms: "Valid on bill of ₹100 or more at participating street stalls & counters.",
+    icon_key: "heart",
+    is_active: true
+  },
+  {
+    id: "rew_macd_75",
+    title: "₹75 OFF or Free McFlurry at McDonald's",
+    description: "Flat ₹75 off on your favourite burgers and meals, or get a free McFlurry with any combo.",
+    brand: "McDonald's",
+    category: "food",
+    discount_amount_inr: 75,
+    cost_xp: 150,
+    location: "All McDonald's Outlets & McDelivery",
+    terms: "Enter code at McDonald's Self-Ordering Kiosk or McDelivery app.",
+    icon_key: "sword",
+    is_active: true
+  },
+  {
+    id: "rew_starbucks_100",
+    title: "₹100 OFF Starbucks Beverage Voucher",
+    description: "Treat yourself to handcrafted Frappuccinos, artisanal cold brews, or warm bakery bites.",
+    brand: "Starbucks Coffee",
+    category: "lifestyle",
+    discount_amount_inr: 100,
+    cost_xp: 200,
+    location: "All Starbucks Outlets / In-app",
+    terms: "Show barcode or enter code on Starbucks India app at payment.",
+    icon_key: "crown",
+    is_active: true
+  },
+  {
+    id: "rew_amazon_50",
+    title: "₹50 Amazon Pay Gift Voucher",
+    description: "Instant ₹50 voucher balance for shopping, food orders, or recharge on Amazon.",
+    brand: "Amazon",
+    category: "shopping",
+    discount_amount_inr: 50,
+    cost_xp: 100,
+    location: "Online / Amazon India App",
+    terms: "Redeem voucher code instantly in Amazon Pay -> Add Gift Card.",
+    icon_key: "gift",
+    is_active: true
+  },
+  {
+    id: "rew_amazon_100",
+    title: "₹100 Amazon Pay Gift Voucher",
+    description: "Instant ₹100 voucher balance for shopping, movies, or bill payments on Amazon.",
+    brand: "Amazon",
+    category: "shopping",
+    discount_amount_inr: 100,
+    cost_xp: 200,
+    location: "Online / Amazon India App",
+    terms: "Redeem voucher code instantly in Amazon Pay -> Add Gift Card.",
+    icon_key: "gift",
+    is_active: true
+  }
+];
