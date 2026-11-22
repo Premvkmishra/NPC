@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as JourneyRouteImport } from './routes/journey'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -18,6 +19,11 @@ import { Route as QuestIdRouteImport } from './routes/quest.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -43,6 +49,7 @@ const QuestIdRoute = QuestIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/explore': typeof ExploreRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/explore': typeof ExploreRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/explore': typeof ExploreRoute
   '/journey': typeof JourneyRoute
   '/onboarding': typeof OnboardingRoute
@@ -65,14 +74,24 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/explore' | '/journey' | '/onboarding' | '/quest/$id'
+  fullPaths:
+    '/' | '/analytics' | '/explore' | '/journey' | '/onboarding' | '/quest/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/explore' | '/journey' | '/onboarding' | '/quest/$id'
-  id: '__root__' | '/' | '/explore' | '/journey' | '/onboarding' | '/quest/$id'
+  to:
+    '/' | '/analytics' | '/explore' | '/journey' | '/onboarding' | '/quest/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/analytics'
+    | '/explore'
+    | '/journey'
+    | '/onboarding'
+    | '/quest/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   ExploreRoute: typeof ExploreRoute
   JourneyRoute: typeof JourneyRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -86,6 +105,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -121,6 +147,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
   ExploreRoute: ExploreRoute,
   JourneyRoute: JourneyRoute,
   OnboardingRoute: OnboardingRoute,

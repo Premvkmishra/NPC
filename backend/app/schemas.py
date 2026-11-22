@@ -196,6 +196,28 @@ class JourneyResponse(BaseModel):
     journal: List[JournalEntry]
     category_counts: Dict[str, int]
 
+class AnalyticsEntry(BaseModel):
+    """One completed quest, with the details the analytics tab aggregates."""
+    quest_id: str
+    title: str
+    category: Category
+    difficulty: Difficulty
+    duration_minutes: int
+    estimated_cost_inr: Optional[int] = None
+    xp_earned: int
+    completed_at: str
+    location: Optional[QuestLocation] = None
+    has_reflection: bool
+    has_photo: bool
+
+class AnalyticsResponse(BaseModel):
+    player: Player
+    entries: List[AnalyticsEntry]  # completed quests, newest first
+    quests_dismissed: int
+    quests_open: int  # suggested or active
+    autopilot_start: Autopilot  # reading from onboarding answers alone
+    autopilot_now: Autopilot
+
 class WeeklyRecapStats(BaseModel):
     quests_completed: int
     new_places: int

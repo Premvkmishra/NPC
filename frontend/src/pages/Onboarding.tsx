@@ -7,6 +7,7 @@ import { Btn } from "@/components/Btn";
 import { DialogueBox } from "@/components/DialogueBox";
 import { AutopilotMeter } from "@/components/AutopilotMeter";
 import { ErrorState, LoadingState } from "@/components/States";
+import { SamplePlayerButton } from "@/components/SamplePlayer";
 
 const INTERESTS: { v: Interest; l: string }[] = [
   { v: "food", l: "Food & new places" }, { v: "art", l: "Art & creativity" }, { v: "people", l: "Meeting people" },
@@ -136,6 +137,12 @@ export function Onboarding() {
         {step > 0 && <Btn variant="paper" onClick={() => setStep(step - 1)}>Back</Btn>}
         <Btn className="flex-1" disabled={!canNext} onClick={() => (step < 3 ? setStep(step + 1) : create.mutate())}>{step < 3 ? "Next" : "Begin"}</Btn>
       </div>
+      {step === 0 && (
+        <div className="space-y-2 border-t-[3px] border-dashed border-ink pt-4">
+          <p className="text-sm">Just looking around? Jump in as a sample player with two months of adventures already logged.</p>
+          <SamplePlayerButton />
+        </div>
+      )}
     </div>
   );
 }

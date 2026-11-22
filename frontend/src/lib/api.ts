@@ -53,6 +53,11 @@ export const httpClient: NpcClient = {
     }
     return res;
   },
+  createSamplePlayer: async () => {
+    const res = await req<{ player: Player; autopilot: Autopilot }>("POST", "/players/sample", { auth: false });
+    if (res?.player?.id) setPlayerId(res.player.id);
+    return res;
+  },
   getMe: () => req("GET", "/players/me"),
   updateMe: (p) => req("PATCH", "/players/me", { body: p }),
   home: () => req("GET", "/home"),
@@ -67,6 +72,7 @@ export const httpClient: NpcClient = {
   questFromExperience: (id) => req("POST", `/explore/experiences/${encodeURIComponent(id)}/quest`),
   journey: () => req("GET", "/journey"),
   weeklyRecap: () => req("GET", "/journey/weekly-recap"),
+  analytics: () => req("GET", "/analytics"),
 };
 
 export const api: NpcClient = USE_MOCK ? mockClient : httpClient;

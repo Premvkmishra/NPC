@@ -126,7 +126,68 @@ function seedBoard(s: State) {
   }
 }
 
+const SAMPLE_REFLECTIONS = [
+  "Didn't miss my phone once.", "Talked to a stranger and it was fine. Better than fine.", "Noticed a detail I'd walked past for years.",
+  "Terrible drawing, great time.", "Worth it. Would go again.", "", "Got a recommendation I'm actually going to follow.",
+];
+// [days ago, local hour, template index]. Denser recently, so the trend climbs.
+const SAMPLE_SCHEDULE: [number, number, number][] = [
+  [55, 18, 0], [51, 7, 8], [47, 19, 2], [44, 17, 4], [40, 10, 1], [37, 19, 9], [34, 18, 3], [31, 8, 7],
+  [29, 16, 6], [26, 20, 5], [23, 11, 0], [21, 7, 8], [19, 18, 7], [16, 6, 5], [14, 17, 4], [12, 9, 3],
+  [10, 19, 9], [8, 13, 1], [6, 18, 6], [4, 7, 8], [2, 19, 2], [1, 12, 0],
+];
+
+/** A demo save with ~2 months of history so the analytics tab has something to show. */
+function sampleState(): State {
+  const s = freshState();
+  const prefs: Preferences = {
+    display_name: "Riya (sample)", interests: ["food", "art", "outdoors", "culture"], novelty_frequency: "rarely",
+    social_style: "either", comfort_level: 2, city: "Andheri, Mumbai", lat: null, lng: null,
+    free_time_minutes: 90, max_distance_km: 10, budget_inr: 1500, accessibility_notes: null, last_first_time: "this_year",
+  };
+  const player: Player = { id: uid("p"), display_name: prefs.display_name, city: prefs.city, ...levelFromXp(0), total_xp: 0,
+    quests_completed: 0, achievements_unlocked: 0, created_at: new Date(Date.now() - 58 * 864e5).toISOString() };
+  s.player = player; s.prefs = prefs; s.baseScore = initialScore(prefs);
+  SAMPLE_SCHEDULE.forEach(([daysAgo, hour, t], i) => {
+    const d = new Date(Date.now() - daysAgo * 864e5); d.setHours(hour, (i * 7) % 60, 0, 0);
+    const at = d.toISOString();
+    const q: Quest = { ...makeQuest(TEMPLATES[t]!), status: "completed", created_at: at, started_at: at, completed_at: at };
+    s.quests.push(q);
+    s.journal.unshift({ quest_id: q.id, title: q.title, category: q.category, completed_at: at, xp_earned: q.xp_reward,
+      reflection: SAMPLE_REFLECTIONS[i % SAMPLE_REFLECTIONS.length] || null, photo_url: null, location_name: q.location?.name ?? null });
+    player.total_xp += q.xp_reward; player.quests_completed += 1;
+  });
+  [2, 6, 9].forEach((t) => s.quests.push({ ...makeQuest(TEMPLATES[t]!), status: "dismissed" }));
+  Object.assign(player, levelFromXp(player.total_xp));
+  const cats = new Set(s.journal.map((j) => j.category));
+  const earned: Record<string, boolean> = { first_quest: true, three_quests: true, five_quests: true, all_categories: cats.size >= 5,
+    level_2: player.level >= 2, photo: false, courage: cats.has("courage") };
+  for (const a of s.achievements) if (earned[a.id]) { a.unlocked = true; a.unlocked_at = s.journal[0]!.completed_at; }
+  player.achievements_unlocked = s.achievements.filter((a) => a.unlocked).length;
+  seedBoard(s);
+  return s;
+}
+
 export const mockClient: NpcClient = {
+  async createSamplePlayer() {
+    await delay(700);
+    const s = sampleState(); save(s); localStorage.setItem(PLAYER_KEY, s.player!.id);
+    return { player: s.player!, autopilot: autopilot(s) };
+  },
+  async analytics() {
+    await delay(); const s = load(); const player = requirePlayer(s);
+    const byId = new Map(s.journal.map((j) => [j.quest_id, j]));
+    const entries = s.quests.filter((q) => q.status === "completed" && byId.has(q.id)).map((q) => {
+      const j = byId.get(q.id)!;
+      return { quest_id: q.id, title: q.title, category: q.category, difficulty: q.difficulty, duration_minutes: q.duration_minutes,
+        estimated_cost_inr: q.estimated_cost_inr, xp_earned: j.xp_earned, completed_at: j.completed_at, location: q.location,
+        has_reflection: !!j.reflection?.trim(), has_photo: !!j.photo_url };
+    }).sort((a, b) => b.completed_at.localeCompare(a.completed_at));
+    const base = { ...autopilot(s), score: s.baseScore, label: autopilotLabel(s.baseScore) };
+    return { player, entries, quests_dismissed: s.quests.filter((q) => q.status === "dismissed").length,
+      quests_open: s.quests.filter((q) => q.status === "suggested" || q.status === "active").length,
+      autopilot_start: base, autopilot_now: autopilot(s) };
+  },
   async health() { await delay(100); return { status: "ok", mock_mode: true, serpapi_live: false, llm_live: false }; },
   async createPlayer(p) {
     await delay(900);
