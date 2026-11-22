@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import math
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -12,8 +13,23 @@ from app.config import settings, BASE_DIR
 from app.models import SerpCacheModel, ExperienceModel
 from app.schemas import Experience, ExperienceKind, SourceType
 
+logger = logging.getLogger("npc")
+
 DEFAULT_MUMBAI_LAT = 19.1136
 DEFAULT_MUMBAI_LNG = 72.8697
+SERPAPI_URL = "https://serpapi.com/search.json"
+
+
+def _gps(item: dict) -> Tuple[Optional[float], Optional[float]]:
+    gps = item.get("gps_coordinates") or {}
+    return gps.get("latitude"), gps.get("longitude")
+
+
+def _distance(player_lat: Optional[float], player_lng: Optional[float],
+              lat: Optional[float], lng: Optional[float]) -> Optional[float]:
+    if None in (player_lat, player_lng, lat, lng):
+        return None
+    return haversine_km(player_lat, player_lng, lat, lng)
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371.0
@@ -68,8 +84,8 @@ def parse_maps_results(
 ) -> List[Experience]:
     results: List[Experience] = []
     items = data.get("local_results", [])
-    p_lat = player_lat or DEFAULT_MUMBAI_LAT
-    p_lng = player_lng or DEFAULT_MUMBAI_LNG
+    if not isinstance(items, list):
+        items = []
 
     for item in items:
         title = item.get("title")
@@ -78,11 +94,8 @@ def parse_maps_results(
         place_id = item.get("place_id") or hashlib.md5(title.encode()).hexdigest()[:10]
         exp_id = f"exp_maps_{place_id}"
 
-        gps = item.get("gps_coordinates", {})
-        lat = gps.get("latitude")
-        lng = gps.get("longitude")
-
-        distance_km = haversine_km(p_lat, p_lng, lat, lng) if lat and lng else None
+        lat, lng = _gps(item)
+        distance_km = _distance(player_lat, player_lng, lat, lng)
 
         types = item.get("types", [])
         subtitle = item.get("type") or (types[0] if types else "Local find")
@@ -94,7 +107,9 @@ def parse_maps_results(
         rating = float(item["rating"]) if "rating" in item and item["rating"] is not None else None
         link_url = item.get("link")
 
-        why_worth_it = f"Authentic local spot in {item.get('address', 'Mumbai')}. Rated {rating or 4.5} stars."
+        why_worth_it = f"Authentic local spot in {item.get('address') or 'the neighbourhood'}."
+        if rating:
+            why_worth_it += f" Rated {rating} stars."
         if "gallery" in tag:
             why_worth_it = "Ten minutes surrounded by original contemporary art resets your mindset."
         elif "bookstore" in tag:
@@ -132,8 +147,8 @@ def parse_events_results(
 ) -> List[Experience]:
     results: List[Experience] = []
     items = data.get("events_results", [])
-    p_lat = player_lat or DEFAULT_MUMBAI_LAT
-    p_lng = player_lng or DEFAULT_MUMBAI_LNG
+    if not isinstance(items, list):
+        items = []
 
     for item in items:
         title = item.get("title")
@@ -162,9 +177,7 @@ def parse_events_results(
         elif "open mic" in title.lower():
             why_worth_it = "Witnessing strangers share raw, unvarnished words in an intimate space."
 
-        # Approximate distance for Andheri events
-        distance_km = 2.4
-
+        # Google Events results carry no coordinates, so distance is unknown.
         results.append(Experience(
             id=exp_id,
             kind="event",
@@ -173,9 +186,9 @@ def parse_events_results(
             tag=tag,
             thumbnail_url=item.get("thumbnail"),
             address=address,
-            lat=p_lat + 0.005,
-            lng=p_lng + 0.005,
-            distance_km=distance_km,
+            lat=None,
+            lng=None,
+            distance_km=None,
             price_label=price_label,
             hours_label=None,
             event_time_label=when,
@@ -194,11 +207,10 @@ def parse_search_results(
     fetched_at: str
 ) -> List[Experience]:
     results: List[Experience] = []
-    p_lat = player_lat or DEFAULT_MUMBAI_LAT
-    p_lng = player_lng or DEFAULT_MUMBAI_LNG
 
     # Check local_results
-    local_places = data.get("local_results", {}).get("places", [])
+    local_raw = data.get("local_results", {})
+    local_places = local_raw.get("places", []) if isinstance(local_raw, dict) else []
     for place in local_places:
         title = place.get("title")
         if not title:
@@ -207,6 +219,7 @@ def parse_search_results(
         address = place.get("address")
         rating = float(place["rating"]) if "rating" in place and place["rating"] is not None else None
         tag = extract_tag(title, address)
+        lat, lng = _gps(place)
 
         results.append(Experience(
             id=exp_id,
@@ -216,9 +229,9 @@ def parse_search_results(
             tag=tag,
             thumbnail_url=place.get("thumbnail"),
             address=address,
-            lat=p_lat - 0.004,
-            lng=p_lng + 0.003,
-            distance_km=1.5,
+            lat=lat,
+            lng=lng,
+            distance_km=_distance(player_lat, player_lng, lat, lng),
             price_label=place.get("price") or "Under ₹100",
             hours_label=None,
             event_time_label=None,
@@ -248,10 +261,10 @@ def parse_search_results(
             subtitle="Offbeat exploration",
             tag=tag,
             thumbnail_url=item.get("thumbnail"),
-            address="Andheri, Mumbai",
-            lat=p_lat + 0.002,
-            lng=p_lng - 0.003,
-            distance_km=2.1,
+            address=None,
+            lat=None,
+            lng=None,
+            distance_km=None,
             price_label="Free",
             hours_label=None,
             event_time_label=None,
@@ -263,6 +276,81 @@ def parse_search_results(
         ))
 
     return results
+
+def _serpapi_request(engine: str, params: Dict[str, Any]) -> Optional[str]:
+    """One live SerpApi call, retried once on a 5xx or network error. Returns the raw JSON text or None."""
+    req_params = dict(params)
+    req_params["api_key"] = settings.SERPAPI_API_KEY
+    req_params["engine"] = engine
+
+    for attempt in range(2):
+        try:
+            resp = httpx.get(SERPAPI_URL, params=req_params, timeout=15.0)
+        except Exception as e:
+            logger.warning(f"SerpApi attempt {attempt + 1} failed: {e}")
+            continue
+        if resp.status_code < 500:
+            if resp.is_success:
+                return resp.text
+            logger.warning(f"SerpApi returned {resp.status_code}: {resp.text[:200]}")
+            return None
+    return None
+
+
+def _store_cache(db: Session, cached: Optional[SerpCacheModel], q_hash: str, engine: str,
+                 params: Dict[str, Any], raw_json_str: str, now_iso: str) -> None:
+    if cached:
+        cached.raw_json = raw_json_str
+        cached.fetched_at = now_iso
+    else:
+        db.add(SerpCacheModel(
+            query_hash=q_hash,
+            engine=engine,
+            query=json.dumps(params),
+            raw_json=raw_json_str,
+            fetched_at=now_iso
+        ))
+    db.commit()
+
+
+def geocode_city(city: str, db: Session) -> Optional[Tuple[float, float]]:
+    """Resolve a typed city or area name to coordinates with one cached SerpApi Maps lookup.
+    Returns None in mock mode or when the place can't be found."""
+    city = (city or "").strip()
+    if not city or not settings.is_serpapi_live:
+        return None
+
+    params = {"q": city, "type": "search"}
+    q_hash = query_hash("google_maps", params)
+    cached = db.query(SerpCacheModel).filter(SerpCacheModel.query_hash == q_hash).first()
+
+    if cached:
+        raw = cached.raw_json
+    else:
+        raw = _serpapi_request("google_maps", params)
+        if raw is None:
+            return None
+        now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        _store_cache(db, None, q_hash, "google_maps", params, raw, now_iso)
+
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return None
+
+    # A city or area name usually resolves to a single place; otherwise use the top result.
+    candidates = [data.get("place_results") or {}]
+    local = data.get("local_results")
+    if isinstance(local, list) and local:
+        candidates.append(local[0])
+    for c in candidates:
+        lat, lng = _gps(c)
+        if lat is not None and lng is not None:
+            return float(lat), float(lng)
+
+    logger.warning(f"Could not geocode city '{city}'.")
+    return None
+
 
 def fetch_serp_cached(
     engine: str,
@@ -291,35 +379,13 @@ def fetch_serp_cached(
         except Exception:
             pass
 
-    # 2. Check if live SerpApi or mock
-    raw_json_str = None
-    if settings.is_serpapi_live:
-        # Live SerpApi call with retry once on 5xx
-        req_params = dict(params)
-        req_params["api_key"] = settings.SERPAPI_API_KEY
-        req_params["engine"] = engine
-        url = "https://serpapi.com/search.json"
+    # 2. Live SerpApi, falling back to fixtures
+    raw_json_str = _serpapi_request(engine, params) if settings.is_serpapi_live else None
 
-        last_resp = None
-        for attempt in range(2):
-            try:
-                resp = httpx.get(url, params=req_params, timeout=15.0)
-                if resp.status_code < 500:
-                    last_resp = resp
-                    break
-                last_resp = resp
-            except Exception as e:
-                import logging
-                logging.getLogger("npc").warning(f"SerpApi attempt {attempt+1} failed: {e}")
-
-        if last_resp and last_resp.is_success:
-            raw_json_str = last_resp.text
-        else:
-            # Fall back to mock if error
-            pass
-
-    if not raw_json_str:
-        # Load from fixture
+    from_fixture = raw_json_str is None
+    if from_fixture:
+        if settings.is_serpapi_live:
+            logger.warning(f"SerpApi failed for {engine} {params}; using fixture data instead.")
         if engine == "google_maps":
             data = load_fixture("serp_maps.json")
         elif engine == "google_events":
@@ -328,20 +394,11 @@ def fetch_serp_cached(
             data = load_fixture("serp_search.json")
         raw_json_str = json.dumps(data)
 
-    # 3. Store into cache
     data = json.loads(raw_json_str)
-    if cached:
-        cached.raw_json = raw_json_str
-        cached.fetched_at = now_iso
-    else:
-        db.add(SerpCacheModel(
-            query_hash=q_hash,
-            engine=engine,
-            query=json.dumps(params),
-            raw_json=raw_json_str,
-            fetched_at=now_iso
-        ))
-    db.commit()
+
+    # 3. Cache live responses only, so fixture data never masks live results later
+    if not from_fixture:
+        _store_cache(db, cached, q_hash, engine, params, raw_json_str, now_iso)
 
     if engine == "google_maps":
         exps = parse_maps_results(data, player_lat, player_lng, now_iso)
@@ -349,6 +406,10 @@ def fetch_serp_cached(
         exps = parse_events_results(data, player_lat, player_lng, now_iso)
     else:
         exps = parse_search_results(data, player_lat, player_lng, now_iso)
+
+    # Fixture data stands in for a failed live call; keep it out of the shared table in live mode
+    if from_fixture and settings.is_serpapi_live:
+        return exps, False
 
     # Also save or update experiences in DB
     for exp in exps:
@@ -394,37 +455,30 @@ def get_experiences_for_category(
     courage -> Search "free open mic / try-something-scary beginner friendly"
     awareness -> Maps "park / garden / quiet library" + Search "slow walk / nature spots"
     """
-    p_lat = lat or DEFAULT_MUMBAI_LAT
-    p_lng = lng or DEFAULT_MUMBAI_LNG
-    results: List[Experience] = []
+    # Mock fixtures are Andheri data, so mock mode keeps Andheri as the origin.
+    # In live mode an unknown location stays unknown instead of silently becoming Andheri.
+    if (lat is None or lng is None) and not settings.is_serpapi_live:
+        lat, lng = DEFAULT_MUMBAI_LAT, DEFAULT_MUMBAI_LNG
 
-    if category == "explore":
-        exps, _ = fetch_serp_cached("google_maps", {"q": "hidden gems unusual landmarks", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_s, _ = fetch_serp_cached("google", {"q": f"offbeat places {city}"}, db, p_lat, p_lng)
-        results.extend(exps_s)
-    elif category == "creativity":
-        exps, _ = fetch_serp_cached("google_maps", {"q": "art gallery pottery studio", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_e, _ = fetch_serp_cached("google_events", {"q": f"workshop in {city}"}, db, p_lat, p_lng)
-        results.extend(exps_e)
-    elif category == "social":
-        exps, _ = fetch_serp_cached("google_events", {"q": f"meetup open mic community event in {city}"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_m, _ = fetch_serp_cached("google_maps", {"q": "live comedy open mic cafe", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps_m)
-    elif category == "courage":
-        exps, _ = fetch_serp_cached("google", {"q": f"free open mic try-something-scary beginner friendly {city}"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_e, _ = fetch_serp_cached("google_events", {"q": f"improv theater beginner in {city}"}, db, p_lat, p_lng)
-        results.extend(exps_e)
-    elif category == "awareness":
-        exps, _ = fetch_serp_cached("google_maps", {"q": "park garden quiet library", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
-        results.extend(exps)
-        exps_s, _ = fetch_serp_cached("google", {"q": f"slow walk nature spots {city}"}, db, p_lat, p_lng)
-        results.extend(exps_s)
-    else:
-        exps, _ = fetch_serp_cached("google_maps", {"q": f"places to visit {city}", "ll": f"@{p_lat},{p_lng},14z"}, db, p_lat, p_lng)
+    def maps(q: str) -> Tuple[str, Dict[str, Any]]:
+        # Name the city in the query too, so results stay local even without coordinates.
+        params: Dict[str, Any] = {"q": f"{q} in {city}", "type": "search"}
+        if lat is not None and lng is not None:
+            params["ll"] = f"@{lat},{lng},14z"
+        return "google_maps", params
+
+    queries: Dict[str, List[Tuple[str, Dict[str, Any]]]] = {
+        "explore": [maps("hidden gems unusual landmarks"), ("google", {"q": f"offbeat places {city}"})],
+        "creativity": [maps("art gallery pottery studio"), ("google_events", {"q": f"workshop in {city}"})],
+        "social": [("google_events", {"q": f"meetup open mic community event in {city}"}), maps("live comedy open mic cafe")],
+        "courage": [("google", {"q": f"free open mic try-something-scary beginner friendly {city}"}),
+                    ("google_events", {"q": f"improv theater beginner in {city}"})],
+        "awareness": [maps("park garden quiet library"), ("google", {"q": f"slow walk nature spots {city}"})],
+    }
+
+    results: List[Experience] = []
+    for engine, params in queries.get(category, [maps("places to visit")]):
+        exps, _ = fetch_serp_cached(engine, params, db, lat, lng)
         results.extend(exps)
 
     # Filter by max_distance_km if distance is known
